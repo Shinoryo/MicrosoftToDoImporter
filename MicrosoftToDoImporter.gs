@@ -30,7 +30,12 @@ const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトー�
 const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
 const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
 
-// 指定したシートを取得し、存在しない場合はエラーを投げる
+/**
+ * 指定したシート名のシートを取得し、存在しない場合はエラーを投げる。
+ * @param {string} sheetName - 取得するシート名
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} シートオブジェクト
+ * @throws {Error} シートが存在しない場合
+ */
 function getSheetOrThrow(sheetName) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
     if (!sheet) {
@@ -39,7 +44,10 @@ function getSheetOrThrow(sheetName) {
     return sheet;
 }
 
-// アクセストークン・リフレッシュトークンの取得・更新処理
+/**
+ * Authシートから認証情報を取得する。
+ * @returns {{clientId: string, clientSecret: string, accessToken: string, refreshToken: string, tokenExpiry: number}}
+ */
 function getAuthProps() {
     const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
     return {
@@ -51,7 +59,11 @@ function getAuthProps() {
     };
 }
 
-// アクセストークンを取得（必要に応じてリフレッシュ）
+/**
+ * アクセストークンを取得（必要に応じてリフレッシュ）。
+ * @returns {string} アクセストークン
+ * @throws {Error} トークンが未取得の場合
+ */
 function getAccessToken() {
     const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const auth = getAuthProps();
@@ -86,8 +98,13 @@ function getAccessToken() {
 }
 
 
-// Microsoft To Do APIとのやりとり（リストID取得など）
-// 指定リスト名からリストIDを取得
+/**
+ * 指定リスト名からMicrosoft To DoリストIDを取得する。
+ * @param {string} listName - リスト名
+ * @param {string} accessToken - アクセストークン
+ * @returns {string} リストID
+ * @throws {Error} リストが見つからない場合
+ */
 function getTodoListId(listName, accessToken) {
     // Microsoft To Doのリスト一覧を取得
     const getOptions = { method: "get", headers: { Authorization: "Bearer " + accessToken } };
@@ -104,15 +121,23 @@ function getTodoListId(listName, accessToken) {
 }
 
 
-// result列へ処理結果を書き込む
-// 指定行・列に値を書き込む（2行目以降がデータ）
+/**
+ * result列へ処理結果を書き込む（2行目以降がデータ）。
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
+ * @param {number} rowIndex - データ行インデックス（0始まり）
+ * @param {number} resultColIndex - result列のインデックス（0始まり）
+ * @param {string} value - 書き込む値
+ */
 function setResultToSheet(sheet, rowIndex, resultColIndex, value) {
     sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue(value);
 }
 
 
-// タスクデータの必須項目チェック
-// タスクの必須項目（title, list_name）をチェック
+/**
+ * タスクデータの必須項目（title, list_name）をチェックする。
+ * @param {Object} task - タスクデータ
+ * @returns {string|null} エラー時はエラーメッセージ、正常時はnull
+ */
 function validateTaskRow(task) {
     if (!task.title || !task.list_name) {
         return MSG_TITLE_LISTNAME_MISSING;
@@ -120,8 +145,11 @@ function validateTaskRow(task) {
     return null;
 }
 
-// タスクデータをMicrosoft To Do API用のペイロード形式に変換
-// タスクデータをAPI用のリクエスト形式に変換
+/**
+ * タスクデータをMicrosoft To Do API用のリクエスト形式に変換する。
+ * @param {Object} task - タスクデータ
+ * @returns {Object} APIリクエスト用ペイロード
+ */
 function buildTaskPayload(task) {
     const payload = {
         title: task.title,
@@ -158,8 +186,11 @@ function buildTaskPayload(task) {
     return payload;
 }
 
-// 1件のタスクをMicrosoft To Doへ登録
-// 1件のタスクをMicrosoft To Doへ登録するAPI呼び出し
+/**
+ * 1件のタスクをMicrosoft To Doへ登録するAPI呼び出し。
+ * @param {Object} task - タスクデータ
+ * @param {string} accessToken - アクセストークン
+ */
 function registerTaskToMicrosoftToDo(task, accessToken) {
     const listId = getTodoListId(task.list_name, accessToken);
     const url = MS_TODO_TASKS_ENDPOINT.replace("${listId}", listId);
@@ -173,8 +204,11 @@ function registerTaskToMicrosoftToDo(task, accessToken) {
     UrlFetchApp.fetch(url, options);
 }
 
-// シートからタスクデータを配列として取得
-// シートからタスクデータを配列で取得（1行=1タスク）
+/**
+ * シートからタスクデータを配列で取得（1行=1タスク）。
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
+ * @returns {Object[]} タスクデータ配列
+ */
 function getTasksFromSheet(sheet) {
     const rows = sheet.getDataRange().getValues();
     const headers = rows.shift();
@@ -185,8 +219,9 @@ function getTasksFromSheet(sheet) {
     });
 }
 
-// シートの全タスクをMicrosoft To Doへ登録するメイン処理
-// シートの全タスクをMicrosoft To Doへ登録するメイン処理
+/**
+ * シートの全タスクをMicrosoft To Doへ登録するメイン処理。
+ */
 function addTasksFromSheet() {
     const ACCESS_TOKEN = getAccessToken();
     const tasksSheet = getSheetOrThrow(SHEET_NAME_TASKS);
@@ -219,8 +254,9 @@ function addTasksFromSheet() {
     SpreadsheetApp.getUi().alert(MSG_TASK_REGISTERED); // 完了通知
 }
 
-// 認証URL生成・トークン取得用の関数
-// 認証URLを生成しシートに出力
+/**
+ * 認証URLを生成しAuthシートに出力する。
+ */
 function generateAuthUrl() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
@@ -233,7 +269,9 @@ function generateAuthUrl() {
     SpreadsheetApp.getUi().alert(MSG_AUTH_URL_GENERATED);
 }
 
-// 認証コードからアクセストークン・リフレッシュトークンを取得
+/**
+ * 認証コードからアクセストークン・リフレッシュトークンを取得しAuthシートに保存する。
+ */
 function exchangeCodeForTokenFromSheet() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
@@ -267,8 +305,9 @@ function exchangeCodeForTokenFromSheet() {
     SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED); // 完了通知
 }
 
-// Googleスプレッドシートのカスタムメニュー追加
-// Googleスプレッドシートのメニューにカスタム項目を追加
+/**
+ * Googleスプレッドシートのメニューにカスタム項目を追加する（onOpenトリガー）。
+ */
 function onOpen() {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu("Microsoft To Do")
