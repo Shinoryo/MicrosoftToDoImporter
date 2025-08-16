@@ -23,13 +23,7 @@ function getAuthProps() {
         clientSecret: sheet.getRange("A2").getValue(),
         accessToken: sheet.getRange("A4").getValue(),
         refreshToken: sheet.getRange("A5").getValue(),
-        tokenExpiry: (() => {
-            const val = sheet.getRange("A7").getValue();
-            if (!val || isNaN(val)) {
-                throw new Error("AuthシートのA7セル（tokenExpiry）が未設定です。認証処理を実行してください。");
-            }
-            return parseInt(val, 10);
-        })()
+        tokenExpiry: parseInt(sheet.getRange("A7").getValue() || 0, 10)
     };
 }
 
