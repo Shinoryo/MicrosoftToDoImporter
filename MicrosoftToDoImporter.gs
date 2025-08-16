@@ -29,7 +29,9 @@ function getAccessToken() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Auth");
   const auth = getAuthProps();
 
-  if (!auth.accessToken || !auth.refreshToken) throw new Error("Authシートにトークン情報がありません。初回認証が必要です。");
+  if (!auth.accessToken || !auth.refreshToken) {
+    throw new Error("Authシートにトークン情報がありません。初回認証が必要です。");
+  }
 
   if (Date.now() > auth.tokenExpiry - 30000) {
     const payload = {
