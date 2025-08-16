@@ -81,8 +81,7 @@ function addTasksFromSheet() {
     const headers = rows.shift();
     let resultColIndex = headers.indexOf("result");
     if (resultColIndex === -1) {
-        resultColIndex = headers.length;
-        sheet.getRange(1, resultColIndex + 1).setValue("result");
+        throw new Error("Tasksシートに'result'列がありません。'result'列を追加してください。");
     }
 
     rows.forEach((row, rowIndex) => {
