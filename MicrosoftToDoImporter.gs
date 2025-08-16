@@ -98,7 +98,9 @@ function addTasksFromSheet() {
             status: task.status || "notStarted"
         };
 
-        if (task.body) payload.body = { content: task.body, contentType: "text" };
+        if (task.body) {
+            payload.body = { content: task.body, contentType: "text" };
+        }
 
         if (task.due) {
             // 日付のみの場合はISO形式に変換
@@ -142,7 +144,6 @@ function addTasksFromSheet() {
             sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue("Success");
         } catch (e) {
             sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue("Error: " + e.message);
-            Logger.log("タスク登録エラー: " + e);
         }
     });
 
