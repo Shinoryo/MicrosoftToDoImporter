@@ -6,7 +6,9 @@ const SCOPES = "offline_access Tasks.ReadWrite";
 // -------------------------
 function getAuthProps() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Auth");
-  if (!sheet) throw new Error("Authシートが存在しません");
+  if (!sheet) {
+    throw new Error("Authシートが存在しません");
+  }
 
   return {
     clientId: sheet.getRange("A1").getValue(),
