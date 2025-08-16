@@ -79,10 +79,77 @@ function setResultToSheet(sheet, rowIndex, resultColIndex, value) {
     sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue(value);
 }
 
+
+// タスクデータのバリデーション
+function validateTaskRow(task) {
+    if (!task.title || !task.list_name) {
+        return "title/list_name missing";
+    }
+    return null;
+}
+
+// タスクデータからAPI用ペイロードを生成
+function buildTaskPayload(task) {
+    const payload = {
+        title: task.title,
+        status: task.status || "notStarted"
+    };
+    if (task.body) {
+        payload.body = { content: task.body, contentType: "text" };
+    }
+    if (task.due) {
+        const dueDate = task.due.length === 10 ? task.due + "T23:59:00Z" : task.due;
+        payload.dueDateTime = { dateTime: dueDate, timeZone: "UTC" };
+    }
+    if (task.reminder) {
+        const remDate = task.reminder.length === 10 ? task.reminder + "T09:00:00Z" : task.reminder;
+        payload.reminderDateTime = { dateTime: remDate, timeZone: "UTC" };
+    }
+    if (task.recurrence_type && task.recurrence_start) {
+        payload.recurrence = {
+            pattern: {
+                type: task.recurrence_type.toLowerCase(),
+                interval: parseInt(task.recurrence_interval || 1, 10)
+            },
+            range: {
+                type: task.recurrence_end ? "endDate" : "noEnd",
+                startDate: task.recurrence_start,
+                endDate: task.recurrence_end || undefined
+            }
+        };
+    }
+    return payload;
+}
+
+// タスク登録処理（1件）
+function registerTaskToMicrosoftToDo(task, accessToken) {
+    const listId = getTodoListId(task.list_name, accessToken);
+    const url = `https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks`;
+    const payload = buildTaskPayload(task);
+    const options = {
+        method: "post",
+        headers: { Authorization: "Bearer " + accessToken },
+        contentType: "application/json",
+        payload: JSON.stringify(payload)
+    };
+    UrlFetchApp.fetch(url, options);
+}
+
+// シートからタスクを取得
+function getTasksFromSheet(sheet) {
+    const rows = sheet.getDataRange().getValues();
+    const headers = rows.shift();
+    return rows.map(row => {
+        const task = {};
+        headers.forEach((h, i) => task[h] = row[i]);
+        return task;
+    });
+}
+
+// メイン処理
 function addTasksFromSheet() {
     const ACCESS_TOKEN = getAccessToken();
     const sheet = getSheetOrThrow("Tasks");
-
     const rows = sheet.getDataRange().getValues();
     const headers = rows.shift();
     let resultColIndex = headers.indexOf("result");
@@ -93,66 +160,18 @@ function addTasksFromSheet() {
     rows.forEach((row, rowIndex) => {
         const task = {};
         headers.forEach((h, i) => task[h] = row[i]);
-
-        if (!task.title || !task.list_name) {
-            setResultToSheet(sheet, rowIndex, resultColIndex, "title/list_name missing");
+        const validationError = validateTaskRow(task);
+        if (validationError) {
+            setResultToSheet(sheet, rowIndex, resultColIndex, validationError);
             return;
         }
-
-        const payload = {
-            title: task.title,
-            status: task.status || "notStarted"
-        };
-
-        if (task.body) {
-            payload.body = { content: task.body, contentType: "text" };
-        }
-
-        if (task.due) {
-            // 日付のみの場合はISO形式に変換
-            const dueDate = task.due.length === 10 ? task.due + "T23:59:00Z" : task.due;
-            payload.dueDateTime = { dateTime: dueDate, timeZone: "UTC" };
-        }
-
-        // リマインダー設定（reminder列の有無）
-        if (task.reminder) {
-            const remDate = task.reminder.length === 10 ? task.reminder + "T09:00:00Z" : task.reminder;
-            payload.reminderDateTime = { dateTime: remDate, timeZone: "UTC" };
-        }
-
-        // 繰り返しタスク
-        if (task.recurrence_type && task.recurrence_start) {
-            payload.recurrence = {
-                pattern: {
-                    type: task.recurrence_type.toLowerCase(),
-                    interval: parseInt(task.recurrence_interval || 1, 10)
-                },
-                range: {
-                    type: task.recurrence_end ? "endDate" : "noEnd",
-                    startDate: task.recurrence_start,
-                    endDate: task.recurrence_end || undefined
-                }
-            };
-        }
-
         try {
-            const listId = getTodoListId(task.list_name, ACCESS_TOKEN);
-            const url = `https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks`;
-
-            const options = {
-                method: "post",
-                headers: { Authorization: "Bearer " + ACCESS_TOKEN },
-                contentType: "application/json",
-                payload: JSON.stringify(payload)
-            };
-
-            UrlFetchApp.fetch(url, options);
+            registerTaskToMicrosoftToDo(task, ACCESS_TOKEN);
             setResultToSheet(sheet, rowIndex, resultColIndex, "Success");
         } catch (e) {
             setResultToSheet(sheet, rowIndex, resultColIndex, "Error: " + e.message);
         }
     });
-
     SpreadsheetApp.getUi().alert("タスク登録処理が完了しました！");
 }
 
