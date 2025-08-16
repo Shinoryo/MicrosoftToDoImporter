@@ -73,6 +73,12 @@ function getTodoListId(listName, accessToken) {
     return list.id;
 }
 
+
+// result列への書き込みを共通化
+function setResultToSheet(sheet, rowIndex, resultColIndex, value) {
+    sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue(value);
+}
+
 function addTasksFromSheet() {
     const ACCESS_TOKEN = getAccessToken();
     const sheet = getSheetOrThrow("Tasks");
@@ -89,7 +95,7 @@ function addTasksFromSheet() {
         headers.forEach((h, i) => task[h] = row[i]);
 
         if (!task.title || !task.list_name) {
-            sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue("title/list_name missing");
+            setResultToSheet(sheet, rowIndex, resultColIndex, "title/list_name missing");
             return;
         }
 
@@ -141,9 +147,9 @@ function addTasksFromSheet() {
             };
 
             UrlFetchApp.fetch(url, options);
-            sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue("Success");
+            setResultToSheet(sheet, rowIndex, resultColIndex, "Success");
         } catch (e) {
-            sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue("Error: " + e.message);
+            setResultToSheet(sheet, rowIndex, resultColIndex, "Error: " + e.message);
         }
     });
 
