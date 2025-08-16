@@ -1,39 +1,66 @@
-﻿
+﻿// GoogleスプレッドシートからMicrosoft To Doへタスクを連携するGASスクリプト
+
+// シート名に関する定数
+const SHEET_NAME_AUTH = "Auth";
+const SHEET_NAME_TASKS = "Tasks";
+
+// 認証情報などを格納するセルアドレスの定数
+const CELL_CLIENT_ID = "A1";
+const CELL_CLIENT_SECRET = "A2";
+const CELL_AUTH_CODE = "A3";
+const CELL_ACCESS_TOKEN = "A4";
+const CELL_REFRESH_TOKEN = "A5";
+const CELL_AUTH_URL = "A6";
+const CELL_TOKEN_EXPIRY = "A7";
+
+// Microsoft認証・APIアクセスに必要な各種定数
 const REDIRECT_URI = "https://login.microsoftonline.com/common/oauth2/nativeclient";
 const SCOPES = "offline_access Tasks.ReadWrite";
+const MS_TODO_LISTS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists";
+const MS_TODO_TASKS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks";
 
-// -------------------------
-// シート取得共通関数
-// -------------------------
+// ユーザー向けメッセージ定数
+const MSG_SHEET_NOT_FOUND = "{sheetName}シートが存在しません";
+const MSG_TOKEN_NOT_FOUND = "Authシートにトークン情報がありません。初回認証が必要です。";
+const MSG_RESULT_COL_NOT_FOUND = "Tasksシートに'result'列がありません。'result'列を追加してください。";
+const MSG_TASK_REGISTERED = "タスク登録処理が完了しました！";
+const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセルA6をクリックしてブラウザで開いてください。";
+const MSG_INPUT_AUTH_CODE = "A3セルにAuthorization Codeを入力してください。";
+const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトークンを取得しました。";
+const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
+const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
+
+// 指定したシートを取得し、存在しない場合はエラーを投げる
 function getSheetOrThrow(sheetName) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
     if (!sheet) {
-        throw new Error(`${sheetName}シートが存在しません`);
+        throw new Error(MSG_SHEET_NOT_FOUND.replace("{sheetName}", sheetName));
     }
     return sheet;
 }
 
-// -------------------------
-// アクセストークン管理
-// -------------------------
+// アクセストークン・リフレッシュトークンの取得・更新処理
 function getAuthProps() {
-    const sheet = getSheetOrThrow("Auth");
+    const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
     return {
-        clientId: sheet.getRange("A1").getValue(),
-        clientSecret: sheet.getRange("A2").getValue(),
-        accessToken: sheet.getRange("A4").getValue(),
-        refreshToken: sheet.getRange("A5").getValue(),
-        tokenExpiry: parseInt(sheet.getRange("A7").getValue() || 0, 10)
+        clientId: sheet.getRange(CELL_CLIENT_ID).getValue(),
+        clientSecret: sheet.getRange(CELL_CLIENT_SECRET).getValue(),
+        accessToken: sheet.getRange(CELL_ACCESS_TOKEN).getValue(),
+        refreshToken: sheet.getRange(CELL_REFRESH_TOKEN).getValue(),
+        tokenExpiry: parseInt(sheet.getRange(CELL_TOKEN_EXPIRY).getValue() || 0, 10)
     };
 }
 
+// アクセストークンを取得（必要に応じてリフレッシュ）
 function getAccessToken() {
-    const sheet = getSheetOrThrow("Auth");
+    const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const auth = getAuthProps();
+    // トークンが未取得の場合はエラー
     if (!auth.accessToken || !auth.refreshToken) {
-        throw new Error("Authシートにトークン情報がありません。初回認証が必要です。");
+        throw new Error(MSG_TOKEN_NOT_FOUND);
     }
 
+    // 有効期限が近い場合はリフレッシュ
     if (Date.now() > auth.tokenExpiry - 30000) {
         const payload = {
             client_id: auth.clientId,
@@ -43,13 +70,14 @@ function getAccessToken() {
             redirect_uri: REDIRECT_URI,
             client_secret: auth.clientSecret
         };
-        const options = { method: "post", payload: payload };
-        const response = UrlFetchApp.fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", options);
-        const result = JSON.parse(response.getContentText());
+        const postOptions = { method: "post", payload: payload };
+        const postResponse = UrlFetchApp.fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", postOptions);
+        const result = JSON.parse(postResponse.getContentText());
 
-        sheet.getRange("A4").setValue(result.access_token);
-        sheet.getRange("A5").setValue(result.refresh_token || auth.refreshToken);
-        sheet.getRange("A7").setValue(Date.now() + result.expires_in * 1000);
+        // 新しいトークン情報をシートに保存
+        sheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
+        sheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token || auth.refreshToken);
+        sheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
 
         return result.access_token;
     }
@@ -57,54 +85,63 @@ function getAccessToken() {
     return auth.accessToken;
 }
 
-// -------------------------
-// Microsoft To Do 操作
-// -------------------------
-function getTodoListId(listName, accessToken) {
-    const url = "https://graph.microsoft.com/v1.0/me/todo/lists";
-    const options = { method: "get", headers: { Authorization: "Bearer " + accessToken } };
-    const response = UrlFetchApp.fetch(url, options);
-    const lists = JSON.parse(response.getContentText()).value;
 
+// Microsoft To Do APIとのやりとり（リストID取得など）
+// 指定リスト名からリストIDを取得
+function getTodoListId(listName, accessToken) {
+    // Microsoft To Doのリスト一覧を取得
+    const getOptions = { method: "get", headers: { Authorization: "Bearer " + accessToken } };
+    const getResponse = UrlFetchApp.fetch(MS_TODO_LISTS_ENDPOINT, getOptions);
+    const lists = JSON.parse(getResponse.getContentText()).value;
+
+    // 指定名のリストを検索
     const list = lists.find(l => l.displayName === listName);
     if (!list) {
-        throw new Error("指定リストが見つかりません: " + listName);
+        // 見つからなければエラー
+        throw new Error(MSG_LIST_NOT_FOUND + listName);
     }
     return list.id;
 }
 
 
-// result列への書き込みを共通化
+// result列へ処理結果を書き込む
+// 指定行・列に値を書き込む（2行目以降がデータ）
 function setResultToSheet(sheet, rowIndex, resultColIndex, value) {
     sheet.getRange(rowIndex + 2, resultColIndex + 1).setValue(value);
 }
 
 
-// タスクデータのバリデーション
+// タスクデータの必須項目チェック
+// タスクの必須項目（title, list_name）をチェック
 function validateTaskRow(task) {
     if (!task.title || !task.list_name) {
-        return "title/list_name missing";
+        return MSG_TITLE_LISTNAME_MISSING;
     }
     return null;
 }
 
-// タスクデータからAPI用ペイロードを生成
+// タスクデータをMicrosoft To Do API用のペイロード形式に変換
+// タスクデータをAPI用のリクエスト形式に変換
 function buildTaskPayload(task) {
     const payload = {
         title: task.title,
         status: task.status || "notStarted"
     };
+    // 本文があれば追加
     if (task.body) {
         payload.body = { content: task.body, contentType: "text" };
     }
+    // 期限があれば追加（10桁なら時刻を補完）
     if (task.due) {
         const dueDate = task.due.length === 10 ? task.due + "T23:59:00Z" : task.due;
         payload.dueDateTime = { dateTime: dueDate, timeZone: "UTC" };
     }
+    // リマインダーがあれば追加（10桁なら時刻を補完）
     if (task.reminder) {
         const remDate = task.reminder.length === 10 ? task.reminder + "T09:00:00Z" : task.reminder;
         payload.reminderDateTime = { dateTime: remDate, timeZone: "UTC" };
     }
+    // 繰り返し設定があれば追加
     if (task.recurrence_type && task.recurrence_start) {
         payload.recurrence = {
             pattern: {
@@ -121,10 +158,11 @@ function buildTaskPayload(task) {
     return payload;
 }
 
-// タスク登録処理（1件）
+// 1件のタスクをMicrosoft To Doへ登録
+// 1件のタスクをMicrosoft To Doへ登録するAPI呼び出し
 function registerTaskToMicrosoftToDo(task, accessToken) {
     const listId = getTodoListId(task.list_name, accessToken);
-    const url = `https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks`;
+    const url = MS_TODO_TASKS_ENDPOINT.replace("${listId}", listId);
     const payload = buildTaskPayload(task);
     const options = {
         method: "post",
@@ -135,7 +173,8 @@ function registerTaskToMicrosoftToDo(task, accessToken) {
     UrlFetchApp.fetch(url, options);
 }
 
-// シートからタスクを取得
+// シートからタスクデータを配列として取得
+// シートからタスクデータを配列で取得（1行=1タスク）
 function getTasksFromSheet(sheet) {
     const rows = sheet.getDataRange().getValues();
     const headers = rows.shift();
@@ -146,60 +185,67 @@ function getTasksFromSheet(sheet) {
     });
 }
 
-// メイン処理
+// シートの全タスクをMicrosoft To Doへ登録するメイン処理
+// シートの全タスクをMicrosoft To Doへ登録するメイン処理
 function addTasksFromSheet() {
     const ACCESS_TOKEN = getAccessToken();
-    const sheet = getSheetOrThrow("Tasks");
-    const rows = sheet.getDataRange().getValues();
+    const tasksSheet = getSheetOrThrow(SHEET_NAME_TASKS);
+    const rows = tasksSheet.getDataRange().getValues();
     const headers = rows.shift();
+    // result列のインデックスを取得
     let resultColIndex = headers.indexOf("result");
     if (resultColIndex === -1) {
-        throw new Error("Tasksシートに'result'列がありません。'result'列を追加してください。");
+        throw new Error(MSG_RESULT_COL_NOT_FOUND);
     }
 
+    // 各行ごとにタスク登録処理
     rows.forEach((row, rowIndex) => {
         const task = {};
         headers.forEach((h, i) => task[h] = row[i]);
+        // 必須項目チェック
         const validationError = validateTaskRow(task);
         if (validationError) {
-            setResultToSheet(sheet, rowIndex, resultColIndex, validationError);
+            setResultToSheet(tasksSheet, rowIndex, resultColIndex, validationError);
             return;
         }
         try {
+            // タスク登録API呼び出し
             registerTaskToMicrosoftToDo(task, ACCESS_TOKEN);
-            setResultToSheet(sheet, rowIndex, resultColIndex, "Success");
+            setResultToSheet(tasksSheet, rowIndex, resultColIndex, "Success"); // 成功時
         } catch (e) {
-            setResultToSheet(sheet, rowIndex, resultColIndex, "Error: " + e.message);
+            setResultToSheet(tasksSheet, rowIndex, resultColIndex, "Error: " + e.message); // 失敗時
         }
     });
-    SpreadsheetApp.getUi().alert("タスク登録処理が完了しました！");
+    SpreadsheetApp.getUi().alert(MSG_TASK_REGISTERED); // 完了通知
 }
 
-// -------------------------
-// 認証用ボタン関数
-// -------------------------
+// 認証URL生成・トークン取得用の関数
+// 認証URLを生成しシートに出力
 function generateAuthUrl() {
-    const sheet = getSheetOrThrow("Auth");
-    const clientId = sheet.getRange("A1").getValue();
+    const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
+    const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
     const url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" +
         "?client_id=" + encodeURIComponent(clientId) +
         "&response_type=code" +
         "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
         "&scope=" + encodeURIComponent(SCOPES);
-    sheet.getRange("A6").setValue(url);
-    SpreadsheetApp.getUi().alert("認証URLを生成しました。\nセルA6をクリックしてブラウザで開いてください。");
+    authSheet.getRange(CELL_AUTH_URL).setValue(url);
+    SpreadsheetApp.getUi().alert(MSG_AUTH_URL_GENERATED);
 }
 
+// 認証コードからアクセストークン・リフレッシュトークンを取得
 function exchangeCodeForTokenFromSheet() {
-    const sheet = getSheetOrThrow("Auth");
-    const clientId = sheet.getRange("A1").getValue();
-    const clientSecret = sheet.getRange("A2").getValue();
-    const authCode = sheet.getRange("A3").getValue();
+    const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
+    const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
+    const clientSecret = authSheet.getRange(CELL_CLIENT_SECRET).getValue();
+    const authCode = authSheet.getRange(CELL_AUTH_CODE).getValue();
+    // 認証コード未入力時のガード
     if (!authCode) {
-        SpreadsheetApp.getUi().alert("A3セルにAuthorization Codeを入力してください。");
+        SpreadsheetApp.getUi().alert(MSG_INPUT_AUTH_CODE);
         return;
     }
 
+    // トークン取得用リクエストペイロード
     const payload = {
         client_id: clientId,
         scope: SCOPES,
@@ -209,20 +255,20 @@ function exchangeCodeForTokenFromSheet() {
         client_secret: clientSecret
     };
 
-    const options = { method: "post", payload: payload };
-    const response = UrlFetchApp.fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", options);
-    const result = JSON.parse(response.getContentText());
+    const postOptions = { method: "post", payload: payload };
+    const postResponse = UrlFetchApp.fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", postOptions);
+    const result = JSON.parse(postResponse.getContentText()); // レスポンスをパース
 
-    sheet.getRange("A4").setValue(result.access_token);
-    sheet.getRange("A5").setValue(result.refresh_token);
-    sheet.getRange("A7").setValue(Date.now() + result.expires_in * 1000);
+    // トークン情報をシートに保存
+    authSheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
+    authSheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
+    authSheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
 
-    SpreadsheetApp.getUi().alert("アクセストークンとリフレッシュトークンを取得しました。");
+    SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED); // 完了通知
 }
 
-// -------------------------
-// メニュー
-// -------------------------
+// Googleスプレッドシートのカスタムメニュー追加
+// Googleスプレッドシートのメニューにカスタム項目を追加
 function onOpen() {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu("Microsoft To Do")
