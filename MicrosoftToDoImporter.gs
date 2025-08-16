@@ -1,15 +1,23 @@
-﻿const REDIRECT_URI = "https://login.microsoftonline.com/common/oauth2/nativeclient";
+﻿
+const REDIRECT_URI = "https://login.microsoftonline.com/common/oauth2/nativeclient";
 const SCOPES = "offline_access Tasks.ReadWrite";
+
+// -------------------------
+// シート取得共通関数
+// -------------------------
+function getSheetOrThrow(sheetName) {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    if (!sheet) {
+        throw new Error(`${sheetName}シートが存在しません`);
+    }
+    return sheet;
+}
 
 // -------------------------
 // アクセストークン管理
 // -------------------------
 function getAuthProps() {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Auth");
-    if (!sheet) {
-        throw new Error("Authシートが存在しません");
-    }
-
+    const sheet = getSheetOrThrow("Auth");
     return {
         clientId: sheet.getRange("A1").getValue(),
         clientSecret: sheet.getRange("A2").getValue(),
@@ -26,11 +34,7 @@ function getAuthProps() {
 }
 
 function getAccessToken() {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Auth");
-    if (!sheet) {
-        throw new Error("Authシートが存在しません");
-    }
-
+    const sheet = getSheetOrThrow("Auth");
     const auth = getAuthProps();
     if (!auth.accessToken || !auth.refreshToken) {
         throw new Error("Authシートにトークン情報がありません。初回認証が必要です。");
@@ -77,10 +81,7 @@ function getTodoListId(listName, accessToken) {
 
 function addTasksFromSheet() {
     const ACCESS_TOKEN = getAccessToken();
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Tasks");
-    if (!sheet) {
-        throw new Error("Tasksシートが存在しません");
-    }
+    const sheet = getSheetOrThrow("Tasks");
 
     const rows = sheet.getDataRange().getValues();
     const headers = rows.shift();
@@ -159,11 +160,7 @@ function addTasksFromSheet() {
 // 認証用ボタン関数
 // -------------------------
 function generateAuthUrl() {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Auth");
-    if (!sheet) {
-        throw new Error("Authシートが存在しません");
-    }
-
+    const sheet = getSheetOrThrow("Auth");
     const clientId = sheet.getRange("A1").getValue();
     const url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" +
         "?client_id=" + encodeURIComponent(clientId) +
@@ -175,11 +172,7 @@ function generateAuthUrl() {
 }
 
 function exchangeCodeForTokenFromSheet() {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Auth");
-    if (!sheet) {
-        throw new Error("Authシートが存在しません");
-    }
-
+    const sheet = getSheetOrThrow("Auth");
     const clientId = sheet.getRange("A1").getValue();
     const clientSecret = sheet.getRange("A2").getValue();
     const authCode = sheet.getRange("A3").getValue();
