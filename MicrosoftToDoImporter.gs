@@ -146,7 +146,7 @@ function getTodoListId(listName, accessToken) {
     const getOptions = { method: "get", headers: { Authorization: "Bearer " + accessToken }, muteHttpExceptions: true };
     const getResponse = UrlFetchApp.fetch(MS_TODO_LISTS_ENDPOINT, getOptions);
     const code = getResponse.getResponseCode();
-    if (code !== 200) {
+    if (code < 200 || code >= 300) {
         const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", getResponse.getContentText());
         throw new Error(msg);
     }
