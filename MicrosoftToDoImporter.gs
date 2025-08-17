@@ -194,11 +194,10 @@ function buildTaskPayload(task) {
         if (isNaN(dueDate.getTime())) {
             throw new Error(MSG_INVALID_DUE_DATE);
         }
-        // ローカルタイムゾーンで23:59:00を補完
         const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd") + " 23:59:00";
-        // ローカルタイムゾーンの文字列をDateとしてUTCに変換
         const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz);
-        // ISO8601（ミリ秒除去）
+        // toISOString()はミリ秒付き（.000Z）になるため、replaceでミリ秒を除去しISO8601形式（秒まで）に整形
+        // 例: 2025-08-17T00:00:00.000Z → 2025-08-17T00:00:00Z
         const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
         payload.dueDateTime = { dateTime: dueIso, timeZone: "UTC" };
     }
