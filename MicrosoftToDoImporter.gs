@@ -269,9 +269,9 @@ function getTasksFromSheet(sheet) {
  * シートの全タスクをMicrosoft To Doへ登録するメイン処理。
  */
 function addTasksFromSheet() {
-    let ACCESS_TOKEN;
+    let accessToken;
     try {
-        ACCESS_TOKEN = getAccessToken();
+        accessToken = getAccessToken();
     } catch (e) {
         SpreadsheetApp.getUi().alert(MSG_ACCESS_TOKEN_FAILED.replace("{msg}", e.message || e));
         return;
@@ -301,7 +301,7 @@ function addTasksFromSheet() {
 
         // タスク登録API呼び出し
         try {
-            registerTaskToMicrosoftToDo(task, ACCESS_TOKEN);
+            registerTaskToMicrosoftToDo(task, accessToken);
             setResultToSheet(tasksSheet, rowIndex, resultColIndex, TASK_RESULT_SUCCESS);
         } catch (e) {
             setResultToSheet(tasksSheet, rowIndex, resultColIndex, TASK_RESULT_ERROR.replace("{msg}", e.message));
