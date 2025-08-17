@@ -265,7 +265,7 @@ function registerTaskToMicrosoftToDo(task, accessToken) {
     };
     const response = UrlFetchApp.fetch(url, options);
     const code = response.getResponseCode();
-    if (code !== 200 && code !== 201) {
+    if (code < 200 || code >= 300) {
         const msg = MSG_TODO_API_ERROR
             .replace("{code}", code)
             .replace("{body}", response.getContentText());
