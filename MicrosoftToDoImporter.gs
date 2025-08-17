@@ -38,6 +38,7 @@ const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
 const MSG_ACCESS_TOKEN_FAILED = "アクセストークン取得に失敗しました: {msg}";
 const MSG_INVALID_DUE_DATE = "due日付が不正です";
 const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
+const MSG_TODO_API_ERROR = "Microsoft To Do登録APIエラー: HTTP {code}\n{body}";
 const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
 const REGEX_REMOVE_MILLISECONDS = /\.\d{3}Z$/;
@@ -112,8 +113,13 @@ function getAccessToken() {
             redirect_uri: REDIRECT_URI,
             client_secret: auth.clientSecret
         };
-        const postOptions = { method: "post", payload: payload };
+        const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
         const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
+        const code = postResponse.getResponseCode();
+        if (code !== 200) {
+            const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", postResponse.getContentText());
+            throw new Error(msg);
+        }
         const result = JSON.parse(postResponse.getContentText());
 
         // 新しいトークン情報をシートに保存
@@ -137,8 +143,13 @@ function getAccessToken() {
  */
 function getTodoListId(listName, accessToken) {
     // Microsoft To Doのリスト一覧を取得
-    const getOptions = { method: "get", headers: { Authorization: "Bearer " + accessToken } };
+    const getOptions = { method: "get", headers: { Authorization: "Bearer " + accessToken }, muteHttpExceptions: true };
     const getResponse = UrlFetchApp.fetch(MS_TODO_LISTS_ENDPOINT, getOptions);
+    const code = getResponse.getResponseCode();
+    if (code !== 200) {
+        const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", getResponse.getContentText());
+        throw new Error(msg);
+    }
     const lists = JSON.parse(getResponse.getContentText()).value;
 
     // 指定名のリストを検索
@@ -249,9 +260,17 @@ function registerTaskToMicrosoftToDo(task, accessToken) {
         method: "post",
         headers: { Authorization: "Bearer " + accessToken },
         contentType: "application/json",
-        payload: JSON.stringify(payload)
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
     };
-    UrlFetchApp.fetch(url, options);
+    const response = UrlFetchApp.fetch(url, options);
+    const code = response.getResponseCode();
+    if (code !== 200 && code !== 201) {
+        const msg = MSG_TODO_API_ERROR
+            .replace("{code}", code)
+            .replace("{body}", response.getContentText());
+        throw new Error(msg);
+    }
 }
 
 /**
@@ -354,10 +373,15 @@ function exchangeCodeForTokenFromSheet() {
         grant_type: "authorization_code",
         client_secret: clientSecret
     };
-    const postOptions = { method: "post", payload: payload };
+    const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
     let result;
     try {
         const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
+        const code = postResponse.getResponseCode();
+        if (code !== 200) {
+            const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", postResponse.getContentText());
+            throw new Error(msg);
+        }
         result = JSON.parse(postResponse.getContentText());
     } catch (e) {
         SpreadsheetApp.getUi().alert(MSG_TOKEN_REQUEST_FAILED.replace("{msg}", e.message || e));
