@@ -62,6 +62,21 @@ function parseNumberOrDefault(val, def) {
 }
 
 /**
+ * 日付文字列をDateに変換し、無効なら例外を投げる
+ * @param {string} value - 日付文字列
+ * @param {string} errorMsg - エラーメッセージ
+ * @returns {Date}
+ * @throws {Error}
+ */
+function parseDateOrThrow(value, errorMsg) {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) {
+        throw new Error(errorMsg);
+    }
+    return d;
+}
+
+/**
  * 指定したシート名のシートを取得し、存在しない場合はエラーを投げる。
  * @param {string} sheetName - 取得するシート名
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} シートオブジェクト
@@ -202,56 +217,33 @@ function buildTaskPayload(task) {
         payload.body = { content: task.body, contentType: "text" };
     }
 
+
     // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完しUTC変換
     if (task.due) {
         const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
-        let dueDate = new Date(task.due);
-        if (isNaN(dueDate.getTime())) {
-            throw new Error(MSG_INVALID_DUE_DATE);
-        }
-    const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, DATE_FORMAT_DATE) + " 23:59:00";
-    const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz, DATE_FORMAT_DATETIME);
-        // toISOString()はミリ秒付き（.000Z）になるため、replaceでミリ秒を除去しISO8601形式（秒まで）に整形
-        // 例: 2025-08-17T00:00:00.000Z → 2025-08-17T00:00:00Z
+        const dueDate = parseDateOrThrow(task.due, MSG_INVALID_DUE_DATE);
+        const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, DATE_FORMAT_DATE) + " 23:59:00";
+        const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz, DATE_FORMAT_DATETIME);
         const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
         payload.dueDateTime = { dateTime: dueIso, timeZone: "UTC" };
     }
 
     // リマインダーがあれば追加
     if (task.reminder) {
-        let d = new Date(task.reminder);
-        if (isNaN(d.getTime())) {
-            throw new Error(MSG_INVALID_REMINDER_DATE);
-        }
-        // toISOString()はミリ秒付き（.000Z）になるため、replaceでミリ秒を除去しISO8601形式（秒まで）に整形
-        // 例: 2025-08-17T00:00:00.000Z → 2025-08-17T00:00:00Z
+        const d = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
         const remIso = d.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
         payload.reminderDateTime = { dateTime: remIso, timeZone: "UTC" };
     }
 
     // 繰り返し設定があれば追加
     if (task.recurrence_type && task.recurrence_start) {
-        // recurrence_start, recurrence_end を yyyy-MM-dd 形式に変換
+        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         let startDateStr, endDateStr;
-        try {
-            const startDateObj = new Date(task.recurrence_start);
-            if (isNaN(startDateObj.getTime())) {
-                throw new Error("recurrence_start invalid");
-            }
-            startDateStr = Utilities.formatDate(startDateObj, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), DATE_FORMAT_DATE);
-        } catch (e) {
-            throw new Error("recurrence_start invalid");
-        }
+        const startDateObj = parseDateOrThrow(task.recurrence_start, "recurrence_start invalid");
+        startDateStr = Utilities.formatDate(startDateObj, tz, DATE_FORMAT_DATE);
         if (task.recurrence_end) {
-            try {
-                const endDateObj = new Date(task.recurrence_end);
-                if (isNaN(endDateObj.getTime())) {
-                    throw new Error("recurrence_end invalid");
-                }
-                endDateStr = Utilities.formatDate(endDateObj, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), DATE_FORMAT_DATE);
-            } catch (e) {
-                throw new Error("recurrence_end invalid");
-            }
+            const endDateObj = parseDateOrThrow(task.recurrence_end, "recurrence_end invalid");
+            endDateStr = Utilities.formatDate(endDateObj, tz, DATE_FORMAT_DATE);
         } else {
             endDateStr = undefined;
         }
