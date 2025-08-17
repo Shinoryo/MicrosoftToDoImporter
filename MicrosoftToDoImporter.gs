@@ -37,7 +37,6 @@ const MSG_TOKEN_REQUEST_FAILED = "トークン取得リクエストに失敗し�
 const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
 const MSG_ACCESS_TOKEN_FAILED = "アクセストークン取得に失敗しました: {msg}";
 const MSG_INVALID_DUE_DATE = "due日付が不正です";
-const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
 const MSG_TODO_API_ERROR = "Microsoft To Do登録APIエラー: HTTP {code}\n{body}";
 const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
@@ -224,14 +223,6 @@ function buildTaskPayload(task) {
         // "yyyy-MM-dd'T'23:59:00" 形式でISO 8601にする
         const dueLocalIso = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd'T'23:59:00");
         payload.dueDateTime = { dateTime: dueLocalIso, timeZone: tz };
-    }
-
-    // リマインダーがあれば追加（ローカルタイム＋スプレッドシートのタイムゾーンで送信）
-    if (task.reminder) {
-        const remDate = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
-        // "yyyy-MM-dd'T'HH:mm:ss" 形式でISO 8601にする
-        const remLocalIso = Utilities.formatDate(remDate, tz, "yyyy-MM-dd'T'HH:mm:ss");
-        payload.reminderDateTime = { dateTime: remLocalIso, timeZone: tz };
     }
 
     // 繰り返し設定があれば追加
