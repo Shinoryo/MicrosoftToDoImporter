@@ -46,7 +46,7 @@ function getSheetOrThrow(sheetName) {
 
 /**
  * Authシートから認証情報を取得する。
- * @returns {{clientId: string, clientSecret: string, accessToken: string, refreshToken: string, tokenExpiry: number}}
+ * @returns {{clientId: string, clientSecret: string, accessToken: string, refreshToken: string, tokenExpiry: number}} 認証情報
  */
 function getAuthProps() {
     const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
@@ -60,7 +60,7 @@ function getAuthProps() {
 }
 
 /**
- * アクセストークンを取得（必要に応じてリフレッシュ）。
+ * アクセストークンを取得（有効期限の30秒前を過ぎている場合はリフレッシュする）。
  * @returns {string} アクセストークン
  * @throws {Error} トークンが未取得の場合
  */
@@ -72,7 +72,7 @@ function getAccessToken() {
         throw new Error(MSG_TOKEN_NOT_FOUND);
     }
 
-    // 有効期限が近い場合はリフレッシュ
+    // 有効期限の30秒前を過ぎている場合はリフレッシュ
     if (Date.now() > auth.tokenExpiry - 30000) {
         const payload = {
             client_id: auth.clientId,
