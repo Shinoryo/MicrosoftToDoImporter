@@ -92,13 +92,13 @@
 
 ## 想定実行環境
 
+本ツールはGoogle Apps Script（GAS）として動作します。利用にあたり、以下の環境を想定しています。
+
 | 項目 | 内容 |
 | ---- | ---- |
-| CPU | Intel 第10世代 Core i5 以上相当 |
-| メモリー | 8 GB 以上 |
-| OS | Windows 10 / Windows 11 |
-| Python | 3.x 以降 |
-| Pythonライブラリー | pandas==1.5.3 <br/> requests==2.31.0 |
+| 動作環境 | Googleスプレッドシート（Webブラウザー版） |
+| ブラウザ | Google Chrome最新版 |
+| Microsoftアカウント | Microsoft To Doが利用可能なアカウント（組織/個人どちらも可） |
 
 ## 処理詳細
 
