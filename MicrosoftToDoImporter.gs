@@ -378,7 +378,7 @@ function exchangeCodeForTokenFromSheet() {
     try {
         const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
         const code = postResponse.getResponseCode();
-        if (code !== 200) {
+        if (code < 200 || code >= 300) {
             const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", postResponse.getContentText());
             throw new Error(msg);
         }
