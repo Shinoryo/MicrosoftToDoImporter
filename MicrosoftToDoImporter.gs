@@ -350,19 +350,21 @@ function exchangeCodeForTokenFromSheet() {
         client_secret: clientSecret
     };
     const postOptions = { method: "post", payload: payload };
+    let result;
     try {
         const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
-        const result = JSON.parse(postResponse.getContentText());
-
-        // トークン情報をシートに保存
-        authSheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
-        authSheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
-        authSheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
-
-        SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED);
+        result = JSON.parse(postResponse.getContentText());
     } catch (e) {
         SpreadsheetApp.getUi().alert(MSG_TOKEN_REQUEST_FAILED.replace("{msg}", e.message || e));
+        return;
     }
+
+    // トークン情報をシートに保存
+    authSheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
+    authSheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
+    authSheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
+
+    SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED);
 }
 
 /**
