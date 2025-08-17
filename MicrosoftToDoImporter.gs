@@ -36,6 +36,7 @@ const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトー�
 const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
 const MSG_TOKEN_REQUEST_FAILED = "トークン取得リクエストに失敗しました: {msg}";
 const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
+const MSG_ACCESS_TOKEN_FAILED = "アクセストークン取得に失敗しました: {msg}";
 const MSG_INVALID_DUE_DATE = "due日付が不正です";
 const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
 const TASK_RESULT_SUCCESS = "Success";
@@ -267,7 +268,13 @@ function getTasksFromSheet(sheet) {
  * シートの全タスクをMicrosoft To Doへ登録するメイン処理。
  */
 function addTasksFromSheet() {
-    const ACCESS_TOKEN = getAccessToken();
+    let ACCESS_TOKEN;
+    try {
+        ACCESS_TOKEN = getAccessToken();
+    } catch (e) {
+        SpreadsheetApp.getUi().alert(MSG_ACCESS_TOKEN_FAILED.replace("{msg}", e.message || e));
+        return;
+    }
     const tasksSheet = getSheetOrThrow(SHEET_NAME_TASKS);
     const rows = tasksSheet.getDataRange().getValues();
     const headers = rows.shift();
