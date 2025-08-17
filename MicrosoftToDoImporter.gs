@@ -218,21 +218,26 @@ function buildTaskPayload(task) {
     }
 
 
-    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完しUTC変換
+    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完し、そのままローカルタイムで送信
     if (task.due) {
         const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         const dueDate = parseDateOrThrow(task.due, MSG_INVALID_DUE_DATE);
         const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, DATE_FORMAT_DATE) + " 23:59:00";
-        const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz, DATE_FORMAT_DATETIME);
-        const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
-        payload.dueDateTime = { dateTime: dueIso, timeZone: "UTC" };
+        // dueLocalDateTimeStrは "yyyy-MM-dd 23:59:00" 形式
+        // Microsoft To Do APIは "yyyy-MM-ddTHH:mm:ss" 形式を期待するため、Tで連結
+        const dueLocalIso = dueLocalDateTimeStr.replace(" ", "T");
+        payload.dueDateTime = { dateTime: dueLocalIso, timeZone: tz };
     }
 
-    // リマインダーがあれば追加
+    // リマインダーがあれば追加（ローカルタイム＋スプレッドシートのタイムゾーンで送信）
     if (task.reminder) {
-        const d = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
-        const remIso = d.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
-        payload.reminderDateTime = { dateTime: remIso, timeZone: "UTC" };
+        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+        const remDate = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
+        // "yyyy-MM-dd HH:mm:ss" 形式でローカルタイムを作成
+        const remLocalDateTimeStr = Utilities.formatDate(remDate, tz, DATE_FORMAT_DATETIME);
+        // Tで連結しISO形式に
+        const remLocalIso = remLocalDateTimeStr.replace(" ", "T");
+        payload.reminderDateTime = { dateTime: remLocalIso, timeZone: tz };
     }
 
     // 繰り返し設定があれば追加
