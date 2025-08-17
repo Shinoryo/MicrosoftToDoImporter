@@ -252,6 +252,8 @@ function buildTaskPayload(task) {
             } catch (e) {
                 throw new Error("recurrence_end invalid");
             }
+        } else {
+            endDateStr = undefined;
         }
         payload.recurrence = {
             pattern: {
