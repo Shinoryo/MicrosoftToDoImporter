@@ -42,6 +42,10 @@ const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
 const REGEX_REMOVE_MILLISECONDS = /\.\d{3}Z$/;
 
+// 日付フォーマット定数
+const DATE_FORMAT_DATE = "yyyy-MM-dd";
+const DATE_FORMAT_DATETIME = "yyyy-MM-dd HH:mm:ss";
+
 /**
  * 数値変換し、NaNならデフォルト値を返す
  * @param {any} val - 変換対象
@@ -194,8 +198,8 @@ function buildTaskPayload(task) {
         if (isNaN(dueDate.getTime())) {
             throw new Error(MSG_INVALID_DUE_DATE);
         }
-        const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd") + " 23:59:00";
-        const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz);
+    const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, DATE_FORMAT_DATE) + " 23:59:00";
+    const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz, DATE_FORMAT_DATETIME);
         // toISOString()はミリ秒付き（.000Z）になるため、replaceでミリ秒を除去しISO8601形式（秒まで）に整形
         // 例: 2025-08-17T00:00:00.000Z → 2025-08-17T00:00:00Z
         const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
