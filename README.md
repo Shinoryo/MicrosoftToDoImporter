@@ -18,74 +18,64 @@
 * 期限日、リマインダー、本文、繰り返し設定など各種タスク属性を反映して登録します。
 * Googleスプレッドシートのカスタムメニューから認証やタスク登録などの操作を実行できます。
 
-## 入力
+## 入力（Googleスプレッドシート構成）
 
-### ファイル（JSON用テンプレート）
+本スクリプトは、以下2つのシート構成を前提としています。
 
-| 項目 | 内容 |
+### 「Auth」シート
+
+| セル | 内容 |
 | ---- | ---- |
-| ファイル名 | `settings.json` |
-| 配置場所 | 任意 |
-| 形式 | JSON |
-| エンコーディング | UTF-8(BOM付き可) |
-| 内容概要 | 設定ファイル |
+| A1   | MicrosoftアプリのClient ID |
+| A2   | MicrosoftアプリのClient Secret |
+| A3   | Authorization Code |
+| A4   | アクセストークン（自動取得・更新） |
+| A5   | リフレッシュトークン（自動取得・更新） |
+| A6   | 認証URL（自動生成） |
+| A7   | トークン有効期限（自動生成、UNIXミリ秒、内部管理用） |
 
-| キー名 | データ型 | 説明 | 例 |
-| ---- | ---- | ---- | ---- |
-| input_dir | string | 入力ファイルのディレクトリパス | "data/input" |
-| output_dir | string | 出力ファイルのディレクトリパス | "data/output" |
-| retry_policy.enabled | boolean | リトライ機能を有効にするかどうか | true |
-| retry_policy.max_retries | int | 最大リトライ回数 | 3 |
-| retry_policy.interval | int | リトライ間隔（秒） | 5 |
+### 「Tasks」シート
 
-```json
-{
-  "input_dir": "data/input",
-  "output_dir": "data/output",
-  "retry_policy": {
-    "enabled": true,
-    "max_retries": 3,
-    "interval": 5
-  }
-}
+| 列名         | 内容                         |
+| ------------ | ---------------------------- |
+| title        | タスクのタイトル（必須）     |
+| list_name    | 登録先リスト名（必須）       |
+| body         | タスクの本文（任意）         |
+| due          | 期限日  |
+| reminder     | リマインダー日時             |
+| status       | タスクの状態（任意、未指定時はnotStarted） |
+| recurrence_type  | 繰り返し種別（任意、未指定時は繰り返しなし） |
+| recurrence_start | 繰り返し開始日（任意）        |
+| recurrence_end   | 繰り返し終了日（任意）        |
+| recurrence_interval | 繰り返し間隔（任意、数値） |
+| result       | 登録結果（自動出力）         |
 
-### ファイル（CSV用テンプレート）
+#### status列に指定可能な値
 
-| 項目 | 内容 |
-| ---- | ---- |
-| ファイル名 | `input_data.csv` |
-| 形式 | CSV |
-| エンコーディング | UTF-8(BOM付き可) |
-| ヘッダー | あり  |
-| 区切り文字    | `,` |
-| 内容概要 | 入力ファイル |
+| 値                | 意味         |
+|-------------------|--------------|
+| notStarted        | 未開始       |
+| inProgress        | 進行中       |
+| completed         | 完了         |
+| waitingOnOthers   | 他者待ち     |
+| deferred          | 延期         |
 
-| 列名 | データ型 | 説明 |
-| ---- | ---- | ---- |
-| id | int | ユーザーID |
-| name | str | ユーザー名 |
-| email | str | メールアドレス |
-| created_at | datetime | 作成日時 |
+#### recurrence_type列に指定可能な値
 
-```csv
-id,name,email,created_at
-1,Alice,alice@example.com,2025-06-01T12:00:00
-2,Bob,bob@example.com,2025-06-02T08:30:00
-```
+| 値         | 意味         |
+|------------|--------------|
+| daily      | 毎日         |
+| weekly     | 毎週         |
+| absoluteMonthly | 毎月（特定日） |
+| absoluteYearly  | 毎年（特定日） |
+| relativeMonthly | 毎月（第n曜日など） |
+| relativeYearly  | 毎年（第n曜日など） |
 
 ## 出力
 
 ### ログファイル
 
 * 「ログ出力」の章に記載する。
-
-### ファイル（PDF用テンプレート）
-
-| 項目 | 内容 |
-| ---- | ---- |
-| ファイル名 | `output_data.pdf` |
-| 形式 | PDF |
-| 内容概要 | 出力ファイル |
 
 ## 実行方法
 
