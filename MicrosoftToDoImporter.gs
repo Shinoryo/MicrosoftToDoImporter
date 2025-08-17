@@ -24,6 +24,7 @@ const MS_TODO_TASKS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists/$
 // 列名定数
 const COL_NAME_RESULT = "result";
 
+
 // メッセージ定数（ユーザー向け・エラー・結果・バリデーション）
 const MSG_SHEET_NOT_FOUND = "{sheetName}シートが存在しません";
 const MSG_TOKEN_NOT_FOUND = "Authシートにトークン情報がありません。初回認証が必要です。";
@@ -39,6 +40,17 @@ const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
 const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
 const REGEX_REMOVE_MILLISECONDS = /\.\d{3}Z$/;
+
+/**
+ * 数値変換し、NaNならデフォルト値を返す
+ * @param {any} val - 変換対象
+ * @param {number} def - デフォルト値
+ * @returns {number}
+ */
+function parseNumberOrDefault(val, def) {
+    const num = Number(val);
+    return isNaN(num) ? def : num;
+}
 
 /**
  * 指定したシート名のシートを取得し、存在しない場合はエラーを投げる。
@@ -65,11 +77,7 @@ function getAuthProps() {
         clientSecret: sheet.getRange(CELL_CLIENT_SECRET).getValue(),
         accessToken: sheet.getRange(CELL_ACCESS_TOKEN).getValue(),
         refreshToken: sheet.getRange(CELL_REFRESH_TOKEN).getValue(),
-        tokenExpiry: (() => {
-            const val = sheet.getRange(CELL_TOKEN_EXPIRY).getValue();
-            const num = Number(val);
-            return isNaN(num) ? 0 : num;
-        })()
+        tokenExpiry: parseNumberOrDefault(sheet.getRange(CELL_TOKEN_EXPIRY).getValue(), 0)
     };
 }
 
@@ -206,10 +214,7 @@ function buildTaskPayload(task) {
         payload.recurrence = {
             pattern: {
                 type: task.recurrence_type.toLowerCase(),
-                interval: (() => {
-                    const num = Number(task.recurrence_interval);
-                    return isNaN(num) ? 1 : num;
-                })()
+                interval: parseNumberOrDefault(task.recurrence_interval, 1)
             },
             range: {
                 type: task.recurrence_end ? "endDate" : "noEnd",
