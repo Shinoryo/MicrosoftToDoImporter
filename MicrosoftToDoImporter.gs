@@ -183,17 +183,19 @@ function buildTaskPayload(task) {
         payload.body = { content: task.body, contentType: "text" };
     }
 
-    // 期限があれば必ず23:59:00 JSTを補完してUTC変換
+    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完しUTC変換
     if (task.due) {
-        let d = new Date(task.due);
-        if (isNaN(d.getTime())) {
+        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+        let dueDate = new Date(task.due);
+        if (isNaN(dueDate.getTime())) {
             throw new Error(MSG_INVALID_DUE_DATE);
         }
-        d.setHours(23, 59, 0, 0);
-        d = new Date(d.getTime() - (9 * 60 * 60 * 1000));
-        // toISOString()はミリ秒付き（.000Z）になるため、replaceでミリ秒を除去しISO8601形式（秒まで）に整形
-        // 例: 2025-08-17T14:59:00.000Z → 2025-08-17T14:59:00Z
-        const dueIso = d.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
+        // ローカルタイムゾーンで23:59:00を補完
+        const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd") + " 23:59:00";
+        // ローカルタイムゾーンの文字列をDateとしてUTCに変換
+        const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz);
+        // ISO8601（ミリ秒除去）
+        const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
         payload.dueDateTime = { dateTime: dueIso, timeZone: "UTC" };
     }
 
