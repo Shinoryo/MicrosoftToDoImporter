@@ -231,6 +231,24 @@ function buildTaskPayload(task) {
 
     // 繰り返し設定があれば追加
     if (task.recurrence_type && task.recurrence_start) {
+        // recurrence_start, recurrence_end を yyyy-MM-dd 形式に変換
+        let startDateStr, endDateStr;
+        try {
+            const startDateObj = new Date(task.recurrence_start);
+            if (isNaN(startDateObj.getTime())) throw new Error("recurrence_start invalid");
+            startDateStr = Utilities.formatDate(startDateObj, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), DATE_FORMAT_DATE);
+        } catch (e) {
+            throw new Error("recurrence_start invalid");
+        }
+        if (task.recurrence_end) {
+            try {
+                const endDateObj = new Date(task.recurrence_end);
+                if (isNaN(endDateObj.getTime())) throw new Error("recurrence_end invalid");
+                endDateStr = Utilities.formatDate(endDateObj, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), DATE_FORMAT_DATE);
+            } catch (e) {
+                throw new Error("recurrence_end invalid");
+            }
+        }
         payload.recurrence = {
             pattern: {
                 type: task.recurrence_type.toLowerCase(),
@@ -238,8 +256,8 @@ function buildTaskPayload(task) {
             },
             range: {
                 type: task.recurrence_end ? "endDate" : "noEnd",
-                startDate: task.recurrence_start,
-                endDate: task.recurrence_end || undefined
+                startDate: startDateStr,
+                endDate: endDateStr
             }
         };
     }
