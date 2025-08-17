@@ -1,4 +1,4 @@
-﻿// GoogleスプレッドシートからMicrosoft To Doへタスクを連携するGASスクリプト
+// GoogleスプレッドシートからMicrosoft To Doへタスクを連携するGASスクリプト
 
 // シート名に関する定数
 const SHEET_NAME_AUTH = "Auth";
