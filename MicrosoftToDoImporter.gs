@@ -65,7 +65,11 @@ function getAuthProps() {
         clientSecret: sheet.getRange(CELL_CLIENT_SECRET).getValue(),
         accessToken: sheet.getRange(CELL_ACCESS_TOKEN).getValue(),
         refreshToken: sheet.getRange(CELL_REFRESH_TOKEN).getValue(),
-        tokenExpiry: parseInt(sheet.getRange(CELL_TOKEN_EXPIRY).getValue() || 0, 10)
+        tokenExpiry: (() => {
+            const val = sheet.getRange(CELL_TOKEN_EXPIRY).getValue();
+            const num = Number(val);
+            return isNaN(num) ? 0 : num;
+        })()
     };
 }
 
