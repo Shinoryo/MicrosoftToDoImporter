@@ -206,7 +206,10 @@ function buildTaskPayload(task) {
         payload.recurrence = {
             pattern: {
                 type: task.recurrence_type.toLowerCase(),
-                interval: parseInt(task.recurrence_interval || 1, 10)
+                interval: (() => {
+                    const num = Number(task.recurrence_interval);
+                    return isNaN(num) ? 1 : num;
+                })()
             },
             range: {
                 type: task.recurrence_end ? "endDate" : "noEnd",
