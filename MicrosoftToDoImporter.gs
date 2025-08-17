@@ -211,16 +211,15 @@ function buildTaskPayload(task) {
         status: task.status || "notStarted"
     };
 
+    const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+
     // 本文があれば追加
     if (task.body) {
         payload.body = { content: task.body, contentType: "text" };
     }
 
-
-
     // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完し、ISO 8601形式で送信
     if (task.due) {
-        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         const dueDate = parseDateOrThrow(task.due, MSG_INVALID_DUE_DATE);
         // "yyyy-MM-dd'T'23:59:00" 形式でISO 8601にする
         const dueLocalIso = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd'T'23:59:00");
@@ -229,7 +228,6 @@ function buildTaskPayload(task) {
 
     // リマインダーがあれば追加（ローカルタイム＋スプレッドシートのタイムゾーンで送信）
     if (task.reminder) {
-        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         const remDate = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
         // "yyyy-MM-dd'T'HH:mm:ss" 形式でISO 8601にする
         const remLocalIso = Utilities.formatDate(remDate, tz, "yyyy-MM-dd'T'HH:mm:ss");
@@ -238,7 +236,6 @@ function buildTaskPayload(task) {
 
     // 繰り返し設定があれば追加
     if (task.recurrence_type && task.recurrence_start) {
-        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         let startDateStr, endDateStr;
         const startDateObj = parseDateOrThrow(task.recurrence_start, "recurrence_start invalid");
         // ISO 8601日付（yyyy-MM-dd）
