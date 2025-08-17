@@ -14,10 +14,14 @@ const CELL_AUTH_URL = "A6";
 const CELL_TOKEN_EXPIRY = "A7";
 
 // Microsoft認証・APIアクセスに必要な各種定数
+const MS_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const REDIRECT_URI = "https://login.microsoftonline.com/common/oauth2/nativeclient";
 const SCOPES = "offline_access Tasks.ReadWrite";
 const MS_TODO_LISTS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists";
 const MS_TODO_TASKS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks";
+
+// 列名定数
+const COL_NAME_RESULT = "result";
 
 // ユーザー向けメッセージ定数
 const MSG_SHEET_NOT_FOUND = "{sheetName}シートが存在しません";
@@ -29,6 +33,10 @@ const MSG_INPUT_AUTH_CODE = "A3セルにAuthorization Codeを入力してくだ�
 const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトークンを取得しました。";
 const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
 const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
+
+// タスク登録結果定数
+const TASK_RESULT_SUCCESS = "Success";
+const TASK_RESULT_ERROR = "Error: {msg}";
 
 /**
  * 指定したシート名のシートを取得し、存在しない場合はエラーを投げる。
@@ -227,31 +235,36 @@ function addTasksFromSheet() {
     const tasksSheet = getSheetOrThrow(SHEET_NAME_TASKS);
     const rows = tasksSheet.getDataRange().getValues();
     const headers = rows.shift();
+
     // result列のインデックスを取得
-    let resultColIndex = headers.indexOf("result");
+    let resultColIndex = headers.indexOf(COL_NAME_RESULT);
     if (resultColIndex === -1) {
         throw new Error(MSG_RESULT_COL_NOT_FOUND);
     }
 
     // 各行ごとにタスク登録処理
     rows.forEach((row, rowIndex) => {
+        // タスクデータをオブジェクトに変換
         const task = {};
         headers.forEach((h, i) => task[h] = row[i]);
+        
         // 必須項目チェック
         const validationError = validateTaskRow(task);
         if (validationError) {
             setResultToSheet(tasksSheet, rowIndex, resultColIndex, validationError);
             return;
         }
+
+        // タスク登録API呼び出し
         try {
-            // タスク登録API呼び出し
             registerTaskToMicrosoftToDo(task, ACCESS_TOKEN);
-            setResultToSheet(tasksSheet, rowIndex, resultColIndex, "Success"); // 成功時
+            setResultToSheet(tasksSheet, rowIndex, resultColIndex, TASK_RESULT_SUCCESS);
         } catch (e) {
-            setResultToSheet(tasksSheet, rowIndex, resultColIndex, "Error: " + e.message); // 失敗時
+            setResultToSheet(tasksSheet, rowIndex, resultColIndex, TASK_RESULT_ERROR.replace("{msg}", e.message));
         }
     });
-    SpreadsheetApp.getUi().alert(MSG_TASK_REGISTERED); // 完了通知
+
+    SpreadsheetApp.getUi().alert(MSG_TASK_REGISTERED);
 }
 
 /**
@@ -260,11 +273,14 @@ function addTasksFromSheet() {
 function generateAuthUrl() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
-    const url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" +
-        "?client_id=" + encodeURIComponent(clientId) +
-        "&response_type=code" +
-        "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-        "&scope=" + encodeURIComponent(SCOPES);
+    const params = [
+        ["client_id", clientId],
+        ["response_type", "code"],
+        ["redirect_uri", REDIRECT_URI],
+        ["scope", SCOPES]
+    ];
+    const queryString = params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+    const url = `${MS_AUTH_ENDPOINT}?${queryString}`;
     authSheet.getRange(CELL_AUTH_URL).setValue(url);
     SpreadsheetApp.getUi().alert(MSG_AUTH_URL_GENERATED);
 }
