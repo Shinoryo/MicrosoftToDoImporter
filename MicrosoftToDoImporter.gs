@@ -235,7 +235,9 @@ function buildTaskPayload(task) {
         let startDateStr, endDateStr;
         try {
             const startDateObj = new Date(task.recurrence_start);
-            if (isNaN(startDateObj.getTime())) throw new Error("recurrence_start invalid");
+            if (isNaN(startDateObj.getTime())) {
+                throw new Error("recurrence_start invalid");
+            }
             startDateStr = Utilities.formatDate(startDateObj, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), DATE_FORMAT_DATE);
         } catch (e) {
             throw new Error("recurrence_start invalid");
@@ -243,7 +245,9 @@ function buildTaskPayload(task) {
         if (task.recurrence_end) {
             try {
                 const endDateObj = new Date(task.recurrence_end);
-                if (isNaN(endDateObj.getTime())) throw new Error("recurrence_end invalid");
+                if (isNaN(endDateObj.getTime())) {
+                    throw new Error("recurrence_end invalid");
+                }
                 endDateStr = Utilities.formatDate(endDateObj, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), DATE_FORMAT_DATE);
             } catch (e) {
                 throw new Error("recurrence_end invalid");
