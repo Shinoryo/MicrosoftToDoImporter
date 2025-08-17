@@ -50,7 +50,10 @@ const REGEX_REMOVE_MILLISECONDS = /\.\d{3}Z$/;
  */
 function parseNumberOrDefault(val, def) {
     const num = Number(val);
-    return isNaN(num) ? def : num;
+    if (isNaN(num)) {
+        return def;
+    }
+    return num;
 }
 
 /**
