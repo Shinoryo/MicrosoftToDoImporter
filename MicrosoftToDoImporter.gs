@@ -217,14 +217,13 @@ function buildTaskPayload(task) {
     }
 
 
-    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完し、そのままローカルタイムで送信
+
+    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完し、ISO 8601形式で送信
     if (task.due) {
         const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         const dueDate = parseDateOrThrow(task.due, MSG_INVALID_DUE_DATE);
-        const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, DATE_FORMAT_DATE) + " 23:59:00";
-        // dueLocalDateTimeStrは "yyyy-MM-dd 23:59:00" 形式
-        // Microsoft To Do APIは "yyyy-MM-ddTHH:mm:ss" 形式を期待するため、Tで連結
-        const dueLocalIso = dueLocalDateTimeStr.replace(" ", "T");
+        // "yyyy-MM-dd'T'23:59:00" 形式でISO 8601にする
+        const dueLocalIso = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd'T'23:59:00");
         payload.dueDateTime = { dateTime: dueLocalIso, timeZone: tz };
     }
 
@@ -232,10 +231,8 @@ function buildTaskPayload(task) {
     if (task.reminder) {
         const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         const remDate = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
-        // "yyyy-MM-dd HH:mm:ss" 形式でローカルタイムを作成
-        const remLocalDateTimeStr = Utilities.formatDate(remDate, tz, DATE_FORMAT_DATETIME);
-        // Tで連結しISO形式に
-        const remLocalIso = remLocalDateTimeStr.replace(" ", "T");
+        // "yyyy-MM-dd'T'HH:mm:ss" 形式でISO 8601にする
+        const remLocalIso = Utilities.formatDate(remDate, tz, "yyyy-MM-dd'T'HH:mm:ss");
         payload.reminderDateTime = { dateTime: remLocalIso, timeZone: tz };
     }
 
@@ -244,10 +241,11 @@ function buildTaskPayload(task) {
         const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         let startDateStr, endDateStr;
         const startDateObj = parseDateOrThrow(task.recurrence_start, "recurrence_start invalid");
-        startDateStr = Utilities.formatDate(startDateObj, tz, DATE_FORMAT_DATE);
+        // ISO 8601日付（yyyy-MM-dd）
+        startDateStr = Utilities.formatDate(startDateObj, tz, "yyyy-MM-dd");
         if (task.recurrence_end) {
             const endDateObj = parseDateOrThrow(task.recurrence_end, "recurrence_end invalid");
-            endDateStr = Utilities.formatDate(endDateObj, tz, DATE_FORMAT_DATE);
+            endDateStr = Utilities.formatDate(endDateObj, tz, "yyyy-MM-dd");
         } else {
             endDateStr = undefined;
         }
