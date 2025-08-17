@@ -41,7 +41,6 @@ const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
 const MSG_TODO_API_ERROR = "Microsoft To Do登録APIエラー: HTTP {code}\n{body}";
 const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
-const REGEX_REMOVE_MILLISECONDS = /\.\d{3}Z$/;
 
 // 日付フォーマット定数
 const DATE_FORMAT_DATE = "yyyy-MM-dd";
@@ -212,38 +211,38 @@ function buildTaskPayload(task) {
         status: task.status || "notStarted"
     };
 
+    const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+
     // 本文があれば追加
     if (task.body) {
         payload.body = { content: task.body, contentType: "text" };
     }
 
-
-    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完しUTC変換
+    // 期限があれば必ず23:59:00（ローカルタイムゾーン）を補完し、ISO 8601形式で送信
     if (task.due) {
-        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         const dueDate = parseDateOrThrow(task.due, MSG_INVALID_DUE_DATE);
-        const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, DATE_FORMAT_DATE) + " 23:59:00";
-        const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz, DATE_FORMAT_DATETIME);
-        const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
-        payload.dueDateTime = { dateTime: dueIso, timeZone: "UTC" };
+        // "yyyy-MM-dd'T'23:59:00" 形式でISO 8601にする
+        const dueLocalIso = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd'T'23:59:00");
+        payload.dueDateTime = { dateTime: dueLocalIso, timeZone: tz };
     }
 
-    // リマインダーがあれば追加
+    // リマインダーがあれば追加（ローカルタイム＋スプレッドシートのタイムゾーンで送信）
     if (task.reminder) {
-        const d = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
-        const remIso = d.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
-        payload.reminderDateTime = { dateTime: remIso, timeZone: "UTC" };
+        const remDate = parseDateOrThrow(task.reminder, MSG_INVALID_REMINDER_DATE);
+        // "yyyy-MM-dd'T'HH:mm:ss" 形式でISO 8601にする
+        const remLocalIso = Utilities.formatDate(remDate, tz, "yyyy-MM-dd'T'HH:mm:ss");
+        payload.reminderDateTime = { dateTime: remLocalIso, timeZone: tz };
     }
 
     // 繰り返し設定があれば追加
     if (task.recurrence_type && task.recurrence_start) {
-        const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
         let startDateStr, endDateStr;
         const startDateObj = parseDateOrThrow(task.recurrence_start, "recurrence_start invalid");
-        startDateStr = Utilities.formatDate(startDateObj, tz, DATE_FORMAT_DATE);
+        // ISO 8601日付（yyyy-MM-dd）
+        startDateStr = Utilities.formatDate(startDateObj, tz, "yyyy-MM-dd");
         if (task.recurrence_end) {
             const endDateObj = parseDateOrThrow(task.recurrence_end, "recurrence_end invalid");
-            endDateStr = Utilities.formatDate(endDateObj, tz, DATE_FORMAT_DATE);
+            endDateStr = Utilities.formatDate(endDateObj, tz, "yyyy-MM-dd");
         } else {
             endDateStr = undefined;
         }
@@ -289,20 +288,6 @@ function registerTaskToMicrosoftToDo(task, accessToken) {
     }
 }
 
-/**
- * シートからタスクデータを配列で取得（1行=1タスク）。
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
- * @returns {Object[]} タスクデータ配列
- */
-function getTasksFromSheet(sheet) {
-    const rows = sheet.getDataRange().getValues();
-    const headers = rows.shift();
-    return rows.map(row => {
-        const task = {};
-        headers.forEach((h, i) => task[h] = row[i]);
-        return task;
-    });
-}
 
 /**
  * シートの全タスクをMicrosoft To Doへ登録するメイン処理。
