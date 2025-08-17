@@ -194,8 +194,8 @@ function buildTaskPayload(task) {
         if (isNaN(dueDate.getTime())) {
             throw new Error(MSG_INVALID_DUE_DATE);
         }
-        const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd") + " 23:59:00";
-        const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz);
+    const dueLocalDateTimeStr = Utilities.formatDate(dueDate, tz, "yyyy-MM-dd") + " 23:59:00";
+    const dueUtcDate = Utilities.parseDate(dueLocalDateTimeStr, tz, "yyyy-MM-dd HH:mm:ss");
         // toISOString()はミリ秒付き（.000Z）になるため、replaceでミリ秒を除去しISO8601形式（秒まで）に整形
         // 例: 2025-08-17T00:00:00.000Z → 2025-08-17T00:00:00Z
         const dueIso = dueUtcDate.toISOString().replace(REGEX_REMOVE_MILLISECONDS, "Z");
