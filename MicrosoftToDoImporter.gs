@@ -41,7 +41,6 @@ const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
 const MSG_TODO_API_ERROR = "Microsoft To Do登録APIエラー: HTTP {code}\n{body}";
 const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
-const REGEX_REMOVE_MILLISECONDS = /\.\d{3}Z$/;
 
 // 日付フォーマット定数
 const DATE_FORMAT_DATE = "yyyy-MM-dd";
@@ -294,20 +293,6 @@ function registerTaskToMicrosoftToDo(task, accessToken) {
     }
 }
 
-/**
- * シートからタスクデータを配列で取得（1行=1タスク）。
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
- * @returns {Object[]} タスクデータ配列
- */
-function getTasksFromSheet(sheet) {
-    const rows = sheet.getDataRange().getValues();
-    const headers = rows.shift();
-    return rows.map(row => {
-        const task = {};
-        headers.forEach((h, i) => task[h] = row[i]);
-        return task;
-    });
-}
 
 /**
  * シートの全タスクをMicrosoft To Doへ登録するメイン処理。
