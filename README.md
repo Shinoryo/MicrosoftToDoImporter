@@ -152,12 +152,13 @@ Googleスプレッドシートのカスタムメニューから「Tasksシート
 | エラー | Authシートにトークン情報がありません。初回認証が必要です。 | トークン未取得時 |
 | エラー | トークン取得リクエストに失敗しました: {msg} | トークン取得APIエラー時 |
 | エラー | アクセストークン取得に失敗しました: {msg} | アクセストークン取得失敗時 |
+| エラー | {sheetName}シートが存在しません | Tasksシートが存在しない場合 |
 | エラー | Tasksシートに'result'列がありません。'result'列を追加してください。 | result列未作成時 |
 | エラー | title/list_name missing | 必須項目未入力時 |
 | エラー | due日付が不正です | 期限日が不正な場合 |
 | エラー | reminder日付が不正です | リマインダー日付が不正な場合 |
 | エラー | 指定リストが見つかりません: {listName} | list_name不正時 |
-| エラー | {sheetName}シートが存在しません | Tasksシートが存在しない場合 |
+| エラー | Microsoft To Do登録APIエラー: HTTP {code}\n{body} | Microsoft To Do API呼び出し時にHTTPエラーが発生した場合（result列） |
 
 ## ライセンス
 
