@@ -34,6 +34,7 @@ const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセルA6を�
 const MSG_INPUT_AUTH_CODE = "A3セルにAuthorization Codeを入力してください。";
 const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトークンを取得しました。";
 const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
+const MSG_TOKEN_REQUEST_FAILED = "トークン取得リクエストに失敗しました: {msg}";
 const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
 const MSG_INVALID_DUE_DATE = "due日付が不正です";
 const MSG_INVALID_REMINDER_DATE = "reminder日付が不正です";
@@ -342,15 +343,19 @@ function exchangeCodeForTokenFromSheet() {
         client_secret: clientSecret
     };
     const postOptions = { method: "post", payload: payload };
-    const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
-    const result = JSON.parse(postResponse.getContentText());
+    try {
+        const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
+        const result = JSON.parse(postResponse.getContentText());
 
-    // トークン情報をシートに保存
-    authSheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
-    authSheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
-    authSheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
+        // トークン情報をシートに保存
+        authSheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
+        authSheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
+        authSheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
 
-    SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED);
+        SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED);
+    } catch (e) {
+        SpreadsheetApp.getUi().alert(MSG_TOKEN_REQUEST_FAILED.replace("{msg}", e.message || e));
+    }
 }
 
 /**
