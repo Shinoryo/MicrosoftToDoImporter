@@ -24,7 +24,6 @@ const MS_TODO_TASKS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists/$
 // 列名定数
 const COL_NAME_RESULT = "result";
 
-
 // メッセージ定数（ユーザー向け・エラー・結果・バリデーション）
 const MSG_SHEET_NOT_FOUND = "{sheetName}シートが存在しません";
 const MSG_TOKEN_NOT_FOUND = "Authシートにトークン情報がありません。初回認証が必要です。";
