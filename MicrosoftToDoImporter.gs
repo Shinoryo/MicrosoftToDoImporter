@@ -28,6 +28,7 @@ const COL_NAME_RESULT = "result";
 // メッセージ定数（ユーザー向け・エラー・結果・バリデーション）
 const MSG_SHEET_NOT_FOUND = "{sheetName}シートが存在しません";
 const MSG_TOKEN_NOT_FOUND = "Authシートにトークン情報がありません。初回認証が必要です。";
+const MSG_TOKEN_EXPIRED = "アクセストークンの有効期限が切れています。再度認証を実行してください。";
 const MSG_RESULT_COL_NOT_FOUND = "Tasksシートに'result'列がありません。'result'列を追加してください。";
 const MSG_TASK_REGISTERED = "タスク登録処理が完了しました！";
 const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセルA6をクリックしてブラウザで開いてください。";
@@ -105,9 +106,9 @@ function getAuthProps() {
 }
 
 /**
- * アクセストークンを取得（有効期限の30秒前を過ぎている場合はリフレッシュする）。
+ * アクセストークンを取得（有効期限の30秒前を過ぎている場合はエラーを投げる）。
  * @returns {string} アクセストークン
- * @throws {Error} トークンが未取得の場合
+ * @throws {Error} トークンが未取得の場合、または有効期限が切れている場合
  */
 function getAccessToken() {
     const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
@@ -117,32 +118,9 @@ function getAccessToken() {
         throw new Error(MSG_TOKEN_NOT_FOUND);
     }
 
-    // 有効期限の30秒前を過ぎている場合はリフレッシュ
+    // 有効期限の30秒前を過ぎている場合はエラー
     if (Date.now() > auth.tokenExpiry - 30000) {
-        const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
-        const payload = {
-            client_id: auth.clientId,
-            scope: SCOPES,
-            refresh_token: auth.refreshToken,
-            grant_type: "refresh_token",
-            redirect_uri: redirectUri,
-            client_secret: auth.clientSecret
-        };
-        const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
-        const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
-        const code = postResponse.getResponseCode();
-        if (code < 200 || code >= 300) {
-            const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", postResponse.getContentText());
-            throw new Error(msg);
-        }
-        const result = JSON.parse(postResponse.getContentText());
-
-        // 新しいトークン情報をシートに保存
-        sheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
-        sheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token || auth.refreshToken);
-        sheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
-
-        return result.access_token;
+        throw new Error(MSG_TOKEN_EXPIRED);
     }
 
     return auth.accessToken;
