@@ -99,7 +99,7 @@ Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWe
 3. 「実行するユーザー」は `自分` を選択します。
 4. 「アプリにアクセスできるユーザー」は `全員` を選びます（Microsoft の認可サーバーがアクセスできる必要があるため）。
 5. デプロイして表示されるWebアプリのURLをコピーします。
-6. Azure ポータルで該当アプリの「認証（Authentication）」設定を開き、プラットフォームに「Web」を追加して、コピーした Web アプリ URL を Redirect URI として登録します（タイプは `Web` を選択）。
+6. Azureポータルで該当アプリの「認証（Authentication）」設定を開き、プラットフォームに「Web」を追加して、コピーしたWebアプリURLをRedirect URIとして登録します（タイプは `Web` を選択）。
 
 ## 想定実行環境
 
