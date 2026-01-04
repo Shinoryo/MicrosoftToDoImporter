@@ -35,6 +35,7 @@
 | A6 | 認証URL（自動生成） |
 | A7 | トークン有効期限（自動生成、UNIXミリ秒、内部管理用） |
 | A8 | code_verifier（PKCE用、自動生成） |
+| A9 | Redirect URI（GAS WebアプリのURL） |
 
 ### 「Tasks」シート
 
@@ -84,12 +85,14 @@
 
 1. Googleスプレッドシートを開き、「拡張機能」→「Apps Script」から本スクリプト（MicrosoftToDoImporter.gs）を貼り付けて保存します。
 2. スプレッドシートに「Auth」シートと「Tasks」シートを作成し、必要なセル・列を準備します。
-3. 「Auth」シートのA1・A2セルにMicrosoftアプリのClient ID・Client Secretを入力します。
-4. スプレッドシートを再読み込みし、メニューに「Microsoft To Do」が追加されていることを確認します。
-5. メニューから「認証URL生成」を選択し、A6セルのURLをブラウザで開いて認可コードを取得します。
-6. 認可コードをA3セルに貼り付け、「トークン取得」を実行してアクセストークンを取得します。
-7. 「Tasks」シートにタスク情報を記入し、「TasksシートからTo Doに登録」を実行します。
-8. 各タスクの登録結果が「result」列に出力されます。
+3. GAS を Web アプリとして公開し、デプロイされたURLを取得します（後述の手順を参照）。
+4. 「Auth」シートのA1・A2セルにMicrosoftアプリのClient ID・Client Secretを入力します。
+5. 「Auth」シートのA9セルにGAS WebアプリのURLを入力します。
+6. スプレッドシートを再読み込みし、メニューに「Microsoft To Do」が追加されていることを確認します。
+7. メニューから「認証URL生成」を選択し、A6セルのURLをブラウザで開いて認可コードを取得します。
+8. 認可コードをA3セルに貼り付け、「トークン取得」を実行してアクセストークンを取得します。
+9. 「Tasks」シートにタスク情報を記入し、「TasksシートからTo Doに登録」を実行します。
+10. 各タスクの登録結果が「result」列に出力されます。
 
 ### GAS を Web アプリとして公開し、Azure 側の Redirect URI を登録する
 
@@ -120,7 +123,7 @@ Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWe
 
 Googleスプレッドシートのカスタムメニューから「認証URL生成」を選択すると、次の処理を行います。
 
-1. AuthシートA1セルからMicrosoftアプリのClient IDを取得します。
+1. AuthシートA1セルからMicrosoftアプリのClient ID、A9セルからRedirect URI（GAS WebアプリのURL）を取得します。
 2. PKCE用の`code_verifier`と`code_challenge`を生成し、`code_verifier`をAuthシートA8セルに保存します。
 3. Microsoft認証エンドポイント、リダイレクトURI、スコープ、`code_challenge`、`code_challenge_method=S256`などのパラメータを組み合わせて認証用URLを生成します。
 4. 生成した認証URLをAuthシートA6セルに出力します。
@@ -132,8 +135,8 @@ A6セルのURLをブラウザで開き、Microsoftアカウントで認可を行
 
 Googleスプレッドシートのカスタムメニューから「トークン取得」を選択すると、次の処理を行います。
 
-1. AuthシートA1セルからClient ID、A2セルからClient Secret、A3セルから認可コードを取得します。
-2. 取得した情報をもとに、Microsoftのトークンエンドポイント（/token）へアクセストークン・リフレッシュトークン取得リクエストを送信します。
+1. AuthシートA1セルからClient ID、A2セルからClient Secret、A3セルから認可コード、A8セルからcode_verifier、A9セルからRedirect URIを取得します。
+2. 取得した情報をもとに、Microsoftのトークンエンドポイント（/token）へアクセストークン・リフレッシュトークン取得リクエストを送信します（PKCE対応）。
 3. レスポンスからアクセストークン・リフレッシュトークン・有効期限を取得します。
 4. 取得したアクセストークンをAuthシートA4セル、リフレッシュトークンをA5セル、有効期限（UNIXミリ秒換算）をA7セルに保存します。
 
