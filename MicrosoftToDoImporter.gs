@@ -502,6 +502,7 @@ function doGet(e) {
         sheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
         sheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
         sheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
+        sheet.getRange(CELL_CODE_VERIFIER).setValue("");
 
         return HtmlService.createHtmlOutput("認証完了");
     } catch (error) {
