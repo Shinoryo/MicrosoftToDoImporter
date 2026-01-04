@@ -332,8 +332,9 @@ function addTasksFromSheet() {
  * @returns {string} code_verifier
  */
 function generateCodeVerifier() {
-    const bytes = Utilities.getUuid() + Utilities.getUuid();
-    return Utilities.base64EncodeWebSafe(bytes).replace(/=/g, "");
+    // RFC 7636に従い、43-128文字のランダム文字列を生成
+    const randomBytes = Utilities.getRandomValues(32);
+    return Utilities.base64EncodeWebSafe(randomBytes).replace(/=/g, "");
 }
 
 /**
@@ -388,6 +389,10 @@ function exchangeCodeForTokenFromSheet() {
     const codeVerifier = authSheet.getRange(CELL_CODE_VERIFIER).getValue();
     if (!authCode) {
         SpreadsheetApp.getUi().alert(MSG_INPUT_AUTH_CODE);
+        return;
+    }
+    if (!codeVerifier) {
+        SpreadsheetApp.getUi().alert("A8セルにcode_verifierがありません。認証URL生成を実行してください。");
         return;
     }
 
