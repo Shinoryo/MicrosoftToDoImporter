@@ -96,7 +96,7 @@
 
 ### GAS を Web アプリとして公開し、Azure 側の Redirect URI を登録する
 
-Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWebアプリURLを利用したい場合は、次の手順でGASを公開し、Azure（Microsoft Entra ID）側にWebアプリのURLをRedirect URIとして登録してください。
+次の手順でGASを公開し、Azure（Microsoft Entra ID）側にWebアプリのURLをRedirect URIとして登録してください。
 
 1. Apps Scriptエディタを開き、右上の「デプロイ」→「新しいデプロイ」を選びます。
 2. デプロイの種類で「Webアプリ」を選択します。
