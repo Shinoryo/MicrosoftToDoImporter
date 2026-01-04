@@ -35,6 +35,7 @@
 | A5 | 認証URL（自動生成） |
 | A6 | トークン有効期限（自動生成、UNIXミリ秒、内部管理用） |
 | A7 | code_verifier（PKCE用、自動生成） |
+| A8 | Redirect URI（GAS WebアプリのURL） |
 
 ### 「Tasks」シート
 
@@ -83,13 +84,13 @@
 ## 実行方法
 
 1. Googleスプレッドシートを開き、「拡張機能」→「Apps Script」から本スクリプト（`MicrosoftToDoImporter.gs`）を貼り付けて保存します。
-2. スプレッドシートに「Auth」シートと「Tasks」シートを作成し、必要なセル・列を準備します（AuthシートのA1〜A7、Tasksシートの列は本READMEの「入力」を参照）。
-3. GAS を Web アプリとして公開し、デプロイされたURLをAzure側のRedirect URIに登録します。
+2. スプレッドシートに「Auth」シートと「Tasks」シートを作成し、必要なセル・列を準備します（AuthシートのA1〜A8、Tasksシートの列は本READMEの「入力」を参照）。
+3. GAS を Web アプリとして公開し、デプロイされたURLを取得してAzure側のRedirect URIに登録します。
    1. Apps Scriptエディタで右上の「デプロイ」→「新しいデプロイ」を選択します。
    2. デプロイの種類で「Webアプリ」を選択します。
    3. 「実行するユーザー」は `自分` を選択します。
    4. 「アプリにアクセスできるユーザー」は必要最小限の範囲を選択します（個人利用は `自分のみ`）。
-   5. デプロイして表示されるWebアプリのURLをコピーします。
+   5. デプロイして表示されるWebアプリのURLをコピーし、`Auth`シートのA8セルに貼り付けます。
    6. Azureポータルで該当アプリの「認証（Authentication）」設定を開き、プラットフォームに「Web」を追加して、コピーしたWebアプリのURLをRedirect URI（タイプ：`Web`）として登録します。
 4. `Auth`シートのA1・A2セルにMicrosoftアプリのClient ID・Client Secretを入力します。
 5. スプレッドシートを再読み込みし、メニューに「Microsoft To Do」が追加されていることを確認します。
@@ -116,24 +117,22 @@
 
 Googleスプレッドシートのカスタムメニューから「認証URL生成」を選択すると、次の処理を行います。
 
-1. AuthシートA1セルからMicrosoftアプリのClient IDを取得します。
-2. `ScriptApp.getService().getUrl()`を使用してGAS WebアプリのURLを自動取得します。
-3. PKCE用の`code_verifier`と`code_challenge`を生成し、`code_verifier`をAuthシートA7セルに保存します。
-4. Microsoft認証エンドポイント、リダイレクトURI、スコープ、`code_challenge`、`code_challenge_method=S256`などのパラメータを組み合わせて認証用URLを生成します。
-5. 生成した認証URLをAuthシートA5セルに出力します。
+1. AuthシートA1セルからMicrosoftアプリのClient ID、A8セルからRedirect URI（GAS WebアプリのURL）を取得します。
+2. PKCE用の`code_verifier`と`code_challenge`を生成し、`code_verifier`をAuthシートA7セルに保存します。
+3. Microsoft認証エンドポイント、リダイレクトURI、スコープ、`code_challenge`、`code_challenge_method=S256`などのパラメータを組み合わせて認証用URLを生成します。
+4. 生成した認証URLをAuthシートA5セルに出力します。
 
 ### トークン自動取得処理（自動）
 
 認証URL（A5セル）をブラウザで開いてMicrosoftアカウントで認可すると、以下の処理が自動的に実行されます。
 
 1. OAuth認可後、ブラウザはGAS WebアプリのURLへ認可コード（code）付きでリダイレクトされます。
-2. doGet関数が認可コードを受け取り、AuthシートA7セルから`code_verifier`を取得します。
-3. `ScriptApp.getService().getUrl()`を使用してGAS WebアプリのURLを自動取得します。
-4. Microsoftのトークンエンドポイント（/token）へアクセストークン・リフレッシュトークン取得リクエストを送信します（PKCE対応）。
-5. レスポンスからアクセストークン・リフレッシュトークン・有効期限を取得します。
-6. 取得したアクセストークンをAuthシートA3セル、リフレッシュトークンをA4セル、有効期限（UNIXミリ秒換算）をA6セルに保存します。
-7. セキュリティ対策として、AuthシートA7セルの`code_verifier`をクリアします（空文字を保存）。
-8. ブラウザに「認証完了」メッセージを表示します。
+2. doGet関数が認可コードを受け取り、AuthシートA7セルから`code_verifier`、A8セルからRedirect URIを取得します。
+3. Microsoftのトークンエンドポイント（/token）へアクセストークン・リフレッシュトークン取得リクエストを送信します（PKCE対応）。
+4. レスポンスからアクセストークン・リフレッシュトークン・有効期限を取得します。
+5. 取得したアクセストークンをAuthシートA3セル、リフレッシュトークンをA4セル、有効期限（UNIXミリ秒換算）をA6セルに保存します。
+6. セキュリティ対策として、AuthシートA7セルの`code_verifier`をクリアします（空文字を保存）。
+7. ブラウザに「認証完了」メッセージを表示します。
 
 ### タスク登録処理
 

@@ -12,6 +12,7 @@ const CELL_REFRESH_TOKEN = "A4";
 const CELL_AUTH_URL = "A5";
 const CELL_TOKEN_EXPIRY = "A6";
 const CELL_CODE_VERIFIER = "A7";
+const CELL_REDIRECT_URI = "A8";
 
 // Microsoft認証・APIアクセスに必要な各種定数
 const MS_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
@@ -29,7 +30,7 @@ const MSG_TOKEN_NOT_FOUND = "Authシートにトークン情報がありませ�
 const MSG_TOKEN_EXPIRED = "アクセストークンの有効期限が切れています。再度認証を実行してください。";
 const MSG_RESULT_COL_NOT_FOUND = "Tasksシートに'result'列がありません。'result'列を追加してください。";
 const MSG_TASK_REGISTERED = "タスク登録処理が完了しました！";
-const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセルA5をクリックしてブラウザで開いてください。";
+const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセル" + CELL_AUTH_URL + "をクリックしてブラウザで開いてください。";
 const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトークンを取得しました。";
 const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
 const MSG_TOKEN_REQUEST_FAILED = "トークン取得リクエストに失敗しました: {msg}";
@@ -339,7 +340,7 @@ function generateCodeChallenge(verifier) {
 function generateAuthUrl() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
-    const redirectUri = ScriptApp.getService().getUrl();
+    const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
     
     // PKCE用のcode_verifierとcode_challengeを生成
     const codeVerifier = generateCodeVerifier();
@@ -391,7 +392,7 @@ function doGet(e) {
         const clientId = sheet.getRange(CELL_CLIENT_ID).getValue();
         const clientSecret = sheet.getRange(CELL_CLIENT_SECRET).getValue();
         const codeVerifier = sheet.getRange(CELL_CODE_VERIFIER).getValue();
-        const redirectUri = ScriptApp.getService().getUrl();
+        const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
 
         if (!codeVerifier) {
             return HtmlService.createHtmlOutput("Error: code_verifierがありません。認証URL生成を実行してください。");
