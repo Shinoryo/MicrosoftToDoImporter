@@ -90,6 +90,17 @@
 7. 「Tasks」シートにタスク情報を記入し、「TasksシートからTo Doに登録」を実行します。
 8. 各タスクの登録結果が「result」列に出力されます。
 
+### GAS を Web アプリとして公開し、Azure 側の Redirect URI を登録する
+
+Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWebアプリURLを利用したい場合は、次の手順でGASを公開し、Azure（Microsoft Entra ID）側にWebアプリのURLをRedirect URIとして登録してください。
+
+1. Apps Scriptエディタを開き、右上の「デプロイ」→「新しいデプロイ」を選びます。
+2. デプロイの種類で「Webアプリ」を選択します。
+3. 「実行するユーザー」は `自分` を選択します。
+4. 「アプリにアクセスできるユーザー」は `全員` を選びます（Microsoft の認可サーバーがアクセスできる必要があるため）。
+5. デプロイして表示されるWebアプリのURLをコピーします。
+6. Azure ポータルで該当アプリの「認証（Authentication）」設定を開き、プラットフォームに「Web」を追加して、コピーした Web アプリ URL を Redirect URI として登録します（タイプは `Web` を選択）。
+
 ## 想定実行環境
 
 本ツールはGoogle Apps Script（GAS）として動作します。利用にあたり、以下の環境を想定しています。
