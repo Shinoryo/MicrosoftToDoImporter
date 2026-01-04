@@ -7,13 +7,11 @@ const SHEET_NAME_TASKS = "Tasks";
 // 認証情報などを格納するセルアドレスの定数
 const CELL_CLIENT_ID = "A1";
 const CELL_CLIENT_SECRET = "A2";
-const CELL_AUTH_CODE = "A3";
-const CELL_ACCESS_TOKEN = "A4";
-const CELL_REFRESH_TOKEN = "A5";
-const CELL_AUTH_URL = "A6";
-const CELL_TOKEN_EXPIRY = "A7";
-const CELL_CODE_VERIFIER = "A8";
-const CELL_REDIRECT_URI = "A9";
+const CELL_ACCESS_TOKEN = "A3";
+const CELL_REFRESH_TOKEN = "A4";
+const CELL_AUTH_URL = "A5";
+const CELL_TOKEN_EXPIRY = "A6";
+const CELL_CODE_VERIFIER = "A7";
 
 // Microsoft認証・APIアクセスに必要な各種定数
 const MS_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
@@ -31,8 +29,7 @@ const MSG_TOKEN_NOT_FOUND = "Authシートにトークン情報がありませ�
 const MSG_TOKEN_EXPIRED = "アクセストークンの有効期限が切れています。再度認証を実行してください。";
 const MSG_RESULT_COL_NOT_FOUND = "Tasksシートに'result'列がありません。'result'列を追加してください。";
 const MSG_TASK_REGISTERED = "タスク登録処理が完了しました！";
-const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセルA6をクリックしてブラウザで開いてください。";
-const MSG_INPUT_AUTH_CODE = "A3セルにAuthorization Codeを入力してください。";
+const MSG_AUTH_URL_GENERATED = "認証URLを生成しました。\nセルA5をクリックしてブラウザで開いてください。";
 const MSG_TOKEN_ACQUIRED = "アクセストークンとリフレッシュトークンを取得しました。";
 const MSG_LIST_NOT_FOUND = "指定リストが見つかりません: ";
 const MSG_TOKEN_REQUEST_FAILED = "トークン取得リクエストに失敗しました: {msg}";
@@ -342,7 +339,7 @@ function generateCodeChallenge(verifier) {
 function generateAuthUrl() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
-    const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
+    const redirectUri = ScriptApp.getService().getUrl();
     
     // PKCE用のcode_verifierとcode_challengeを生成
     const codeVerifier = generateCodeVerifier();
@@ -366,64 +363,12 @@ function generateAuthUrl() {
 }
 
 /**
- * 認証コードからアクセストークン・リフレッシュトークンを取得しAuthシートに保存する。
- */
-function exchangeCodeForTokenFromSheet() {
-    const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
-    const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
-    const clientSecret = authSheet.getRange(CELL_CLIENT_SECRET).getValue();
-    const authCode = authSheet.getRange(CELL_AUTH_CODE).getValue();
-    const codeVerifier = authSheet.getRange(CELL_CODE_VERIFIER).getValue();
-    const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
-    if (!authCode) {
-        SpreadsheetApp.getUi().alert(MSG_INPUT_AUTH_CODE);
-        return;
-    }
-    if (!codeVerifier) {
-        SpreadsheetApp.getUi().alert(`${CELL_CODE_VERIFIER}セルにcode_verifierがありません。認証URL生成を実行してください。`);
-        return;
-    }
-
-    const payload = {
-        client_id: clientId,
-        scope: SCOPES,
-        code: authCode,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code",
-        client_secret: clientSecret,
-        code_verifier: codeVerifier
-    };
-    const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
-    let result;
-    try {
-        const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
-        const code = postResponse.getResponseCode();
-        if (code < 200 || code >= 300) {
-            const msg = MSG_TODO_API_ERROR.replace("{code}", code).replace("{body}", postResponse.getContentText());
-            throw new Error(msg);
-        }
-        result = JSON.parse(postResponse.getContentText());
-    } catch (e) {
-        SpreadsheetApp.getUi().alert(MSG_TOKEN_REQUEST_FAILED.replace("{msg}", e.message || e));
-        return;
-    }
-
-    // トークン情報をシートに保存
-    authSheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
-    authSheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
-    authSheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
-
-    SpreadsheetApp.getUi().alert(MSG_TOKEN_ACQUIRED);
-}
-
-/**
  * Googleスプレッドシートのメニューにカスタム項目を追加する（onOpenトリガー）。
  */
 function onOpen() {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu("Microsoft To Do")
         .addItem("認証URL生成", "generateAuthUrl")
-        .addItem("トークン取得", "exchangeCodeForTokenFromSheet")
         .addSeparator()
         .addItem("TasksシートからTo Doに登録", "addTasksFromSheet")
         .addToUi();
@@ -446,7 +391,7 @@ function doGet(e) {
         const clientId = sheet.getRange(CELL_CLIENT_ID).getValue();
         const clientSecret = sheet.getRange(CELL_CLIENT_SECRET).getValue();
         const codeVerifier = sheet.getRange(CELL_CODE_VERIFIER).getValue();
-        const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
+        const redirectUri = ScriptApp.getService().getUrl();
 
         if (!codeVerifier) {
             return HtmlService.createHtmlOutput("Error: code_verifierがありません。認証URL生成を実行してください。");
