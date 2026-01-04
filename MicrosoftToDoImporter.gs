@@ -333,13 +333,12 @@ function addTasksFromSheet() {
  */
 function generateCodeVerifier() {
     // UUID + 時刻をシードにSHA-256を取り、websafe base64で返す
-    // 生成結果は通常43文字以上になるためPKCEの要件を満たします
+    // SHA-256の結果(32バイト)をBase64URLエンコードすると、パディング除去後は常に43文字となり、
+    // PKCEの要件(43〜128文字)を満たします。
     const seed = Utilities.getUuid() + ":" + Date.now();
     const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, seed);
     let verifier = Utilities.base64EncodeWebSafe(digest).replace(/=/g, "");
-    if (verifier.length < 43) {
-        while (verifier.length < 43) verifier += "A";
-    } else if (verifier.length > 128) {
+    if (verifier.length > 128) {
         verifier = verifier.substring(0, 128);
     }
     return verifier;
