@@ -460,7 +460,7 @@ function onOpen() {
 function doGet(e) {
     const code = e.parameter.code;
     if (!code) {
-        return HtmlService.createHtmlOutput("No code");
+        return HtmlService.createHtmlOutput("認可コードが見つかりません");
     }
 
     try {
@@ -476,11 +476,12 @@ function doGet(e) {
 
         const payload = {
             client_id: clientId,
-            grant_type: "authorization_code",
+            scope: SCOPES,
             code: code,
             redirect_uri: redirectUri,
-            code_verifier: codeVerifier,
-            client_secret: clientSecret
+            grant_type: "authorization_code",
+            client_secret: clientSecret,
+            code_verifier: codeVerifier
         };
 
         const res = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, {
