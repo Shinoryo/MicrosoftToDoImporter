@@ -6,7 +6,6 @@ const SHEET_NAME_TASKS = "Tasks";
 
 // 認証情報などを格納するセルアドレスの定数
 const CELL_CLIENT_ID = "A1";
-const CELL_CLIENT_SECRET = "A2";
 const CELL_AUTH_CODE = "A3";
 const CELL_ACCESS_TOKEN = "A4";
 const CELL_REFRESH_TOKEN = "A5";
@@ -91,13 +90,12 @@ function getSheetOrThrow(sheetName) {
 
 /**
  * Authシートから認証情報を取得する。
- * @returns {{clientId: string, clientSecret: string, accessToken: string, refreshToken: string, tokenExpiry: number}} 認証情報
+ * @returns {{clientId: string, accessToken: string, refreshToken: string, tokenExpiry: number}} 認証情報
  */
 function getAuthProps() {
     const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
     return {
         clientId: sheet.getRange(CELL_CLIENT_ID).getValue(),
-        clientSecret: sheet.getRange(CELL_CLIENT_SECRET).getValue(),
         accessToken: sheet.getRange(CELL_ACCESS_TOKEN).getValue(),
         refreshToken: sheet.getRange(CELL_REFRESH_TOKEN).getValue(),
         tokenExpiry: parseNumberOrDefault(sheet.getRange(CELL_TOKEN_EXPIRY).getValue(), 0)
@@ -119,14 +117,11 @@ function getAccessToken() {
 
     // 有効期限の30秒前を過ぎている場合はリフレッシュ
     if (Date.now() > auth.tokenExpiry - 30000) {
-        const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
         const payload = {
             client_id: auth.clientId,
-            scope: SCOPES,
-            refresh_token: auth.refreshToken,
             grant_type: "refresh_token",
-            redirect_uri: redirectUri,
-            client_secret: auth.clientSecret
+            refresh_token: auth.refreshToken,
+            scope: SCOPES
         };
         const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
         const postResponse = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, postOptions);
@@ -393,7 +388,6 @@ function generateAuthUrl() {
 function exchangeCodeForTokenFromSheet() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
-    const clientSecret = authSheet.getRange(CELL_CLIENT_SECRET).getValue();
     const authCode = authSheet.getRange(CELL_AUTH_CODE).getValue();
     const codeVerifier = authSheet.getRange(CELL_CODE_VERIFIER).getValue();
     const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
@@ -412,7 +406,6 @@ function exchangeCodeForTokenFromSheet() {
         code: authCode,
         redirect_uri: redirectUri,
         grant_type: "authorization_code",
-        client_secret: clientSecret,
         code_verifier: codeVerifier
     };
     const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
@@ -466,7 +459,6 @@ function doGet(e) {
     try {
         const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
         const clientId = sheet.getRange(CELL_CLIENT_ID).getValue();
-        const clientSecret = sheet.getRange(CELL_CLIENT_SECRET).getValue();
         const codeVerifier = sheet.getRange(CELL_CODE_VERIFIER).getValue();
         const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
 
@@ -480,7 +472,6 @@ function doGet(e) {
             code: code,
             redirect_uri: redirectUri,
             grant_type: "authorization_code",
-            client_secret: clientSecret,
             code_verifier: codeVerifier
         };
 
