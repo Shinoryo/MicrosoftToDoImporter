@@ -51,7 +51,7 @@ const DATE_FORMAT_DATETIME = "yyyy-MM-dd HH:mm:ss";
  * @param {any} value - チェック対象の値
  * @returns {boolean} 空またはスペースのみの場合true
  */
-function isEmptyOrWhitespace(value) {
+function isBlank(value) {
     return !value || String(value).trim() === "";
 }
 
@@ -352,11 +352,11 @@ function generateAuthUrl() {
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
     const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
     
-    // バリデーション: CLIENT_IDとREDIRECT_URIが空またはスペースのみでないかチェック
-    if (isEmptyOrWhitespace(clientId)) {
+    // バリデーション: 必須項目が空またはスペースのみでないかチェック
+    if (isBlank(clientId)) {
         throw new Error(MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client ID"));
     }
-    if (isEmptyOrWhitespace(redirectUri)) {
+    if (isBlank(redirectUri)) {
         throw new Error(MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Redirect URI"));
     }
     
@@ -416,16 +416,16 @@ function doGet(e) {
         const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
 
         // バリデーション: 必須項目が空またはスペースのみでないかチェック
-        if (isEmptyOrWhitespace(clientId)) {
+        if (isBlank(clientId)) {
             return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client ID"));
         }
-        if (isEmptyOrWhitespace(clientSecret)) {
+        if (isBlank(clientSecret)) {
             return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client Secret"));
         }
-        if (isEmptyOrWhitespace(codeVerifier)) {
-            return HtmlService.createHtmlOutput("Error: code_verifierがありません。認証URL生成を実行してください。");
+        if (isBlank(codeVerifier)) {
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Code Verifier"));
         }
-        if (isEmptyOrWhitespace(redirectUri)) {
+        if (isBlank(redirectUri)) {
             return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Redirect URI"));
         }
 
