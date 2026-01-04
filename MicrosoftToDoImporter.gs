@@ -399,7 +399,7 @@ function exchangeCodeForTokenFromSheet() {
         return;
     }
     if (!codeVerifier) {
-        SpreadsheetApp.getUi().alert("A8セルにcode_verifierがありません。認証URL生成を実行してください。");
+        SpreadsheetApp.getUi().alert(`${CELL_CODE_VERIFIER}セルにcode_verifierがありません。認証URL生成を実行してください。`);
         return;
     }
 
