@@ -12,6 +12,7 @@ const CELL_ACCESS_TOKEN = "A4";
 const CELL_REFRESH_TOKEN = "A5";
 const CELL_AUTH_URL = "A6";
 const CELL_TOKEN_EXPIRY = "A7";
+const CELL_CODE_VERIFIER = "A8";
 
 // Microsoft認証・APIアクセスに必要な各種定数
 const MS_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
@@ -327,16 +328,48 @@ function addTasksFromSheet() {
 }
 
 /**
+ * PKCE用のcode_verifierを生成する。
+ * @returns {string} code_verifier
+ */
+function generateCodeVerifier() {
+    const bytes = Utilities.getUuid() + Utilities.getUuid();
+    return Utilities.base64EncodeWebSafe(bytes).replace(/=/g, "");
+}
+
+/**
+ * PKCE用のcode_challengeを生成する。
+ * @param {string} verifier - code_verifier
+ * @returns {string} code_challenge
+ */
+function generateCodeChallenge(verifier) {
+    const digest = Utilities.computeDigest(
+        Utilities.DigestAlgorithm.SHA_256,
+        verifier
+    );
+    return Utilities.base64EncodeWebSafe(digest).replace(/=/g, "");
+}
+
+/**
  * 認証URLを生成しAuthシートに出力する。
  */
 function generateAuthUrl() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
+    
+    // PKCE用のcode_verifierとcode_challengeを生成
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+    
+    // code_verifierをAuthシートに保存
+    authSheet.getRange(CELL_CODE_VERIFIER).setValue(codeVerifier);
+    
     const params = [
         ["client_id", clientId],
         ["response_type", "code"],
         ["redirect_uri", REDIRECT_URI],
-        ["scope", SCOPES]
+        ["scope", SCOPES],
+        ["code_challenge", codeChallenge],
+        ["code_challenge_method", "S256"]
     ];
     const queryString = params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
     const url = `${MS_AUTH_ENDPOINT}?${queryString}`;
@@ -352,6 +385,7 @@ function exchangeCodeForTokenFromSheet() {
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
     const clientSecret = authSheet.getRange(CELL_CLIENT_SECRET).getValue();
     const authCode = authSheet.getRange(CELL_AUTH_CODE).getValue();
+    const codeVerifier = authSheet.getRange(CELL_CODE_VERIFIER).getValue();
     if (!authCode) {
         SpreadsheetApp.getUi().alert(MSG_INPUT_AUTH_CODE);
         return;
@@ -363,7 +397,8 @@ function exchangeCodeForTokenFromSheet() {
         code: authCode,
         redirect_uri: REDIRECT_URI,
         grant_type: "authorization_code",
-        client_secret: clientSecret
+        client_secret: clientSecret,
+        code_verifier: codeVerifier
     };
     const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
     let result;
