@@ -13,11 +13,11 @@ const CELL_REFRESH_TOKEN = "A5";
 const CELL_AUTH_URL = "A6";
 const CELL_TOKEN_EXPIRY = "A7";
 const CELL_CODE_VERIFIER = "A8";
+const CELL_REDIRECT_URI = "A9";
 
 // Microsoft認証・APIアクセスに必要な各種定数
 const MS_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const MS_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-const REDIRECT_URI = "https://login.microsoftonline.com/common/oauth2/nativeclient";
 const SCOPES = "offline_access Tasks.ReadWrite";
 const MS_TODO_LISTS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists";
 const MS_TODO_TASKS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks";
@@ -119,12 +119,13 @@ function getAccessToken() {
 
     // 有効期限の30秒前を過ぎている場合はリフレッシュ
     if (Date.now() > auth.tokenExpiry - 30000) {
+        const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
         const payload = {
             client_id: auth.clientId,
             scope: SCOPES,
             refresh_token: auth.refreshToken,
             grant_type: "refresh_token",
-            redirect_uri: REDIRECT_URI,
+            redirect_uri: redirectUri,
             client_secret: auth.clientSecret
         };
         const postOptions = { method: "post", payload: payload, muteHttpExceptions: true };
@@ -363,6 +364,7 @@ function generateCodeChallenge(verifier) {
 function generateAuthUrl() {
     const authSheet = getSheetOrThrow(SHEET_NAME_AUTH);
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
+    const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
     
     // PKCE用のcode_verifierとcode_challengeを生成
     const codeVerifier = generateCodeVerifier();
@@ -374,7 +376,7 @@ function generateAuthUrl() {
     const params = [
         ["client_id", clientId],
         ["response_type", "code"],
-        ["redirect_uri", REDIRECT_URI],
+        ["redirect_uri", redirectUri],
         ["scope", SCOPES],
         ["code_challenge", codeChallenge],
         ["code_challenge_method", "S256"]
@@ -394,6 +396,7 @@ function exchangeCodeForTokenFromSheet() {
     const clientSecret = authSheet.getRange(CELL_CLIENT_SECRET).getValue();
     const authCode = authSheet.getRange(CELL_AUTH_CODE).getValue();
     const codeVerifier = authSheet.getRange(CELL_CODE_VERIFIER).getValue();
+    const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
     if (!authCode) {
         SpreadsheetApp.getUi().alert(MSG_INPUT_AUTH_CODE);
         return;
@@ -407,7 +410,7 @@ function exchangeCodeForTokenFromSheet() {
         client_id: clientId,
         scope: SCOPES,
         code: authCode,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: redirectUri,
         grant_type: "authorization_code",
         client_secret: clientSecret,
         code_verifier: codeVerifier

@@ -35,6 +35,7 @@
 | A6 | 認証URL（自動生成） |
 | A7 | トークン有効期限（自動生成、UNIXミリ秒、内部管理用） |
 | A8 | code_verifier（PKCE用、自動生成） |
+| A9 | Redirect URI（GAS WebアプリのURL） |
 
 ### 「Tasks」シート
 
@@ -82,25 +83,21 @@
 
 ## 実行方法
 
-1. Googleスプレッドシートを開き、「拡張機能」→「Apps Script」から本スクリプト（MicrosoftToDoImporter.gs）を貼り付けて保存します。
-2. スプレッドシートに「Auth」シートと「Tasks」シートを作成し、必要なセル・列を準備します。
-3. 「Auth」シートのA1・A2セルにMicrosoftアプリのClient ID・Client Secretを入力します。
-4. スプレッドシートを再読み込みし、メニューに「Microsoft To Do」が追加されていることを確認します。
-5. メニューから「認証URL生成」を選択し、A6セルのURLをブラウザで開いて認可コードを取得します。
-6. 認可コードをA3セルに貼り付け、「トークン取得」を実行してアクセストークンを取得します。
-7. 「Tasks」シートにタスク情報を記入し、「TasksシートからTo Doに登録」を実行します。
-8. 各タスクの登録結果が「result」列に出力されます。
-
-### GAS を Web アプリとして公開し、Azure 側の Redirect URI を登録する
-
-Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWebアプリURLを利用したい場合は、次の手順でGASを公開し、Azure（Microsoft Entra ID）側にWebアプリのURLをRedirect URIとして登録してください。
-
-1. Apps Scriptエディタを開き、右上の「デプロイ」→「新しいデプロイ」を選びます。
-2. デプロイの種類で「Webアプリ」を選択します。
-3. 「実行するユーザー」は `自分` を選択します。
-4. 「アプリにアクセスできるユーザー」は、個人利用の場合は `自分のみ`、組織内で共有する場合は `組織内のユーザー` など、必要最小限の範囲を選択してください。
-5. デプロイして表示されるWebアプリのURLをコピーします。
-6. Azureポータルで該当アプリの「認証（Authentication）」設定を開き、プラットフォームに「Web」を追加して、コピーしたWebアプリURLをRedirect URIとして登録します（タイプは `Web` を選択）。
+1. Googleスプレッドシートを開き、「拡張機能」→「Apps Script」から本スクリプト（`MicrosoftToDoImporter.gs`）を貼り付けて保存します。
+2. スプレッドシートに「Auth」シートと「Tasks」シートを作成し、必要なセル・列を準備します（AuthシートのA1〜A9、Tasksシートの列は本READMEの「入力」を参照）。
+3. GAS を Web アプリとして公開し、デプロイされたURLを取得してAzure側のRedirect URIに登録します。
+   1. Apps Scriptエディタで右上の「デプロイ」→「新しいデプロイ」を選択します。
+   2. デプロイの種類で「Webアプリ」を選択します。
+   3. 「実行するユーザー」は `自分` を選択します。
+   4. 「アプリにアクセスできるユーザー」は必要最小限の範囲を選択します（個人利用は `自分のみ`）。
+   5. デプロイして表示されるWebアプリのURLをコピーし、`Auth`シートのA9セルに貼り付けます。
+   6. Azureポータルで該当アプリの「認証（Authentication）」設定を開き、プラットフォームに「Web」を追加して、コピーしたWebアプリのURLをRedirect URI（タイプ：`Web`）として登録します。
+4. `Auth`シートのA1・A2セルにMicrosoftアプリのClient ID・Client Secretを入力します。
+5. スプレッドシートを再読み込みし、メニューに「Microsoft To Do」が追加されていることを確認します。
+6. メニューから「認証URL生成」を選択し、A6セルのURLをブラウザで開いて認可コードを取得します。
+7. 認可コードをA3セルに貼り付け、「トークン取得」を実行してアクセストークン・リフレッシュトークンを取得します（取得後、A4/A5/A7セルに保存されます）。
+8. `Tasks`シートにタスク情報を記入し、「TasksシートからTo Doに登録」を実行します。
+9. 各タスクの登録結果が`result`列に出力されます。
 
 ## 想定実行環境
 
@@ -120,7 +117,7 @@ Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWe
 
 Googleスプレッドシートのカスタムメニューから「認証URL生成」を選択すると、次の処理を行います。
 
-1. AuthシートA1セルからMicrosoftアプリのClient IDを取得します。
+1. AuthシートA1セルからMicrosoftアプリのClient ID、A9セルからRedirect URI（GAS WebアプリのURL）を取得します。
 2. PKCE用の`code_verifier`と`code_challenge`を生成し、`code_verifier`をAuthシートA8セルに保存します。
 3. Microsoft認証エンドポイント、リダイレクトURI、スコープ、`code_challenge`、`code_challenge_method=S256`などのパラメータを組み合わせて認証用URLを生成します。
 4. 生成した認証URLをAuthシートA6セルに出力します。
@@ -132,8 +129,8 @@ A6セルのURLをブラウザで開き、Microsoftアカウントで認可を行
 
 Googleスプレッドシートのカスタムメニューから「トークン取得」を選択すると、次の処理を行います。
 
-1. AuthシートA1セルからClient ID、A2セルからClient Secret、A3セルから認可コードを取得します。
-2. 取得した情報をもとに、Microsoftのトークンエンドポイント（/token）へアクセストークン・リフレッシュトークン取得リクエストを送信します。
+1. AuthシートA1セルからClient ID、A2セルからClient Secret、A3セルから認可コード、A8セルからcode_verifier、A9セルからRedirect URIを取得します。
+2. 取得した情報をもとに、Microsoftのトークンエンドポイント（/token）へアクセストークン・リフレッシュトークン取得リクエストを送信します（PKCE対応）。
 3. レスポンスからアクセストークン・リフレッシュトークン・有効期限を取得します。
 4. 取得したアクセストークンをAuthシートA4セル、リフレッシュトークンをA5セル、有効期限（UNIXミリ秒換算）をA7セルに保存します。
 
