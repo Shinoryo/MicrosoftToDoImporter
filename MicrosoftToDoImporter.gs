@@ -38,12 +38,22 @@ const MSG_TITLE_LISTNAME_MISSING = "title/list_name missing";
 const MSG_ACCESS_TOKEN_FAILED = "アクセストークン取得に失敗しました: {msg}";
 const MSG_INVALID_DUE_DATE = "due日付が不正です";
 const MSG_TODO_API_ERROR = "Microsoft To Do登録APIエラー: HTTP {code}\n{body}";
+const MSG_AUTH_FIELD_EMPTY = "{fieldName}が空またはスペースのみです。正しい値を入力してください。";
 const TASK_RESULT_SUCCESS = "Success";
 const TASK_RESULT_ERROR = "Error: {msg}";
 
 // 日付フォーマット定数
 const DATE_FORMAT_DATE = "yyyy-MM-dd";
 const DATE_FORMAT_DATETIME = "yyyy-MM-dd HH:mm:ss";
+
+/**
+ * 文字列が空またはスペースのみかをチェックする
+ * @param {any} value - チェック対象の値
+ * @returns {boolean} 空またはスペースのみの場合true
+ */
+function isBlank(value) {
+    return !value || String(value).trim() === "";
+}
 
 /**
  * 数値変換し、NaNならデフォルト値を返す
@@ -342,6 +352,14 @@ function generateAuthUrl() {
     const clientId = authSheet.getRange(CELL_CLIENT_ID).getValue();
     const redirectUri = authSheet.getRange(CELL_REDIRECT_URI).getValue();
     
+    // バリデーション: 必須項目が空またはスペースのみでないかチェック
+    if (isBlank(clientId)) {
+        throw new Error(MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client ID"));
+    }
+    if (isBlank(redirectUri)) {
+        throw new Error(MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Redirect URI"));
+    }
+    
     // PKCE用のcode_verifierとcode_challengeを生成
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -397,8 +415,18 @@ function doGet(e) {
         const codeVerifier = sheet.getRange(CELL_CODE_VERIFIER).getValue();
         const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
 
-        if (!codeVerifier) {
-            return HtmlService.createHtmlOutput("Error: code_verifierがありません。認証URL生成を実行してください。");
+        // バリデーション: 必須項目が空またはスペースのみでないかチェック
+        if (isBlank(clientId)) {
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client ID"));
+        }
+        if (isBlank(clientSecret)) {
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client Secret"));
+        }
+        if (isBlank(codeVerifier)) {
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Code Verifier"));
+        }
+        if (isBlank(redirectUri)) {
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Redirect URI"));
         }
 
         const payload = {
