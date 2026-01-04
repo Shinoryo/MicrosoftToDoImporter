@@ -452,9 +452,59 @@ function onOpen() {
 }
 
 /**
- * Web アプリとして公開した際のリダイレクト確認用ハンドラー。
- * 単に "OK" を返して生存確認できるようにする。
+ * Web アプリとして公開した際のリダイレクトハンドラー。
+ * OAuth認証後の認可コードを受け取り、アクセストークンとリフレッシュトークンを自動取得する。
+ * @param {Object} e - イベントオブジェクト（e.parameter.codeに認可コードが格納される）
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} 結果メッセージのHTML
  */
 function doGet(e) {
-    return HtmlService.createHtmlOutput("OK");
+    const code = e.parameter.code;
+    if (!code) {
+        return HtmlService.createHtmlOutput("認可コードが見つかりません");
+    }
+
+    try {
+        const sheet = getSheetOrThrow(SHEET_NAME_AUTH);
+        const clientId = sheet.getRange(CELL_CLIENT_ID).getValue();
+        const clientSecret = sheet.getRange(CELL_CLIENT_SECRET).getValue();
+        const codeVerifier = sheet.getRange(CELL_CODE_VERIFIER).getValue();
+        const redirectUri = sheet.getRange(CELL_REDIRECT_URI).getValue();
+
+        if (!codeVerifier) {
+            return HtmlService.createHtmlOutput("Error: code_verifierがありません。認証URL生成を実行してください。");
+        }
+
+        const payload = {
+            client_id: clientId,
+            scope: SCOPES,
+            code: code,
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code",
+            client_secret: clientSecret,
+            code_verifier: codeVerifier
+        };
+
+        const res = UrlFetchApp.fetch(MS_TOKEN_ENDPOINT, {
+            method: "post",
+            payload: payload,
+            muteHttpExceptions: true
+        });
+
+        const responseCode = res.getResponseCode();
+        if (responseCode < 200 || responseCode >= 300) {
+            const errorMsg = `トークン取得エラー: HTTP ${responseCode}\n${res.getContentText()}`;
+            return HtmlService.createHtmlOutput(errorMsg);
+        }
+
+        const result = JSON.parse(res.getContentText());
+
+        sheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
+        sheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
+        sheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
+        sheet.getRange(CELL_CODE_VERIFIER).setValue("");
+
+        return HtmlService.createHtmlOutput("認証完了");
+    } catch (error) {
+        return HtmlService.createHtmlOutput(`Error: ${error.message}`);
+    }
 }
