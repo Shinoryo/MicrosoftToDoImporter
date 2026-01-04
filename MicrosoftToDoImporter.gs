@@ -417,16 +417,16 @@ function doGet(e) {
 
         // バリデーション: 必須項目が空またはスペースのみでないかチェック
         if (isEmptyOrWhitespace(clientId)) {
-            return HtmlService.createHtmlOutput("Error: Client IDが空またはスペースのみです。正しい値を入力してください。");
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client ID"));
         }
         if (isEmptyOrWhitespace(clientSecret)) {
-            return HtmlService.createHtmlOutput("Error: Client Secretが空またはスペースのみです。正しい値を入力してください。");
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Client Secret"));
         }
         if (isEmptyOrWhitespace(codeVerifier)) {
             return HtmlService.createHtmlOutput("Error: code_verifierがありません。認証URL生成を実行してください。");
         }
         if (isEmptyOrWhitespace(redirectUri)) {
-            return HtmlService.createHtmlOutput("Error: Redirect URIが空またはスペースのみです。正しい値を入力してください。");
+            return HtmlService.createHtmlOutput("Error: " + MSG_AUTH_FIELD_EMPTY.replace("{fieldName}", "Redirect URI"));
         }
 
         const payload = {
