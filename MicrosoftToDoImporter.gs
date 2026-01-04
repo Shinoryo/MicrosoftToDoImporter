@@ -400,3 +400,11 @@ function onOpen() {
         .addItem("TasksシートからTo Doに登録", "addTasksFromSheet")
         .addToUi();
 }
+
+/**
+ * Web アプリとして公開した際のリダイレクト確認用ハンドラー。
+ * 単に "OK" を返して生存確認できるようにする。
+ */
+function doGet(e) {
+    return HtmlService.createHtmlOutput("OK");
+}
