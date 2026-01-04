@@ -18,7 +18,6 @@ const CELL_REDIRECT_URI = "A9";
 // Microsoft認証・APIアクセスに必要な各種定数
 const MS_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const MS_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-const REDIRECT_URI = "https://login.microsoftonline.com/common/oauth2/nativeclient";
 const SCOPES = "offline_access Tasks.ReadWrite";
 const MS_TODO_LISTS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists";
 const MS_TODO_TASKS_ENDPOINT = "https://graph.microsoft.com/v1.0/me/todo/lists/${listId}/tasks";
