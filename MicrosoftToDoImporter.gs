@@ -363,7 +363,6 @@ function generateAuthUrl() {
     
     // A7の編集を確実に完了させるため、フラッシュしてから認証URLのメッセージを表示
     SpreadsheetApp.flush();
-    
     SpreadsheetApp.getUi().alert(MSG_AUTH_URL_GENERATED);
 }
 
