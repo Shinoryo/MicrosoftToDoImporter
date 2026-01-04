@@ -360,6 +360,10 @@ function generateAuthUrl() {
     const queryString = params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
     const url = `${MS_AUTH_ENDPOINT}?${queryString}`;
     authSheet.getRange(CELL_AUTH_URL).setValue(url);
+    
+    // A7の編集を確実に完了させるため、フラッシュしてから認証URLのメッセージを表示
+    SpreadsheetApp.flush();
+    
     SpreadsheetApp.getUi().alert(MSG_AUTH_URL_GENERATED);
 }
 
