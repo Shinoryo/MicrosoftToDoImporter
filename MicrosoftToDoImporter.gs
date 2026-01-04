@@ -498,7 +498,6 @@ function doGet(e) {
 
         const result = JSON.parse(res.getContentText());
 
-        sheet.getRange(CELL_AUTH_CODE).setValue(code);
         sheet.getRange(CELL_ACCESS_TOKEN).setValue(result.access_token);
         sheet.getRange(CELL_REFRESH_TOKEN).setValue(result.refresh_token);
         sheet.getRange(CELL_TOKEN_EXPIRY).setValue(Date.now() + result.expires_in * 1000);
