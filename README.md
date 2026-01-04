@@ -27,49 +27,49 @@
 
 | セル | 内容 |
 | ---- | ---- |
-| A1   | MicrosoftアプリのClient ID |
-| A2   | MicrosoftアプリのClient Secret |
-| A3   | Authorization Code |
-| A4   | アクセストークン（自動取得・更新） |
-| A5   | リフレッシュトークン（自動取得・更新） |
-| A6   | 認証URL（自動生成） |
-| A7   | トークン有効期限（自動生成、UNIXミリ秒、内部管理用） |
+| A1 | MicrosoftアプリのClient ID |
+| A2 | MicrosoftアプリのClient Secret |
+| A3 | Authorization Code |
+| A4 | アクセストークン（自動取得・更新） |
+| A5 | リフレッシュトークン（自動取得・更新） |
+| A6 | 認証URL（自動生成） |
+| A7 | トークン有効期限（自動生成、UNIXミリ秒、内部管理用） |
 
 ### 「Tasks」シート
 
-| 列名         | 内容                         |
-| ------------ | ---------------------------- |
-| title        | タスクのタイトル（必須）     |
-| list_name    | 登録先リスト名（必須）       |
-| body         | タスクの本文（任意）         |
-| due          | 期限日  |
-| status       | タスクの状態（任意、未指定時はnotStarted） |
-| recurrence_type  | 繰り返し種別（任意、未指定時は繰り返しなし） |
-| recurrence_start | 繰り返し開始日（任意）        |
-| recurrence_end   | 繰り返し終了日（任意）        |
+| 列名 | 内容 |
+| ---- | ---- |
+| title | タスクのタイトル（必須） |
+| list_name | 登録先リスト名（必須） |
+| body | タスクの本文（任意） |
+| due | 期限日 |
+| status | タスクの状態（任意、未指定時はnotStarted） |
+| recurrence_type | 繰り返し種別（任意、未指定時は繰り返しなし） |
+| recurrence_start | 繰り返し開始日（任意） |
+| recurrence_end | 繰り返し終了日（任意） |
 | recurrence_interval | 繰り返し間隔（任意、数値） |
-| result       | 登録結果（自動出力）         |
+| result | 登録結果（自動出力） |
 
 #### status列に指定可能な値
 
-| 値                | 意味         |
-|-------------------|--------------|
-| notStarted        | 未開始       |
-| inProgress        | 進行中       |
-| completed         | 完了         |
-| waitingOnOthers   | 他者待ち     |
-| deferred          | 延期         |
+| 値 | 意味 |
+| ---- | ---- |
+| notStarted | 未開始 |
+| inProgress | 進行中 |
+| completed | 完了 |
+| waitingOnOthers | 他者待ち |
+| deferred | 延期 |
 
 #### recurrence_type列に指定可能な値
 
-| 値         | 意味         |
-|------------|--------------|
-| daily      | 毎日         |
-| weekly     | 毎週         |
+| 値 | 意味 |
+| ---- | ---- |
+| daily | 毎日 |
+| weekly | 毎週 |
 | absoluteMonthly | 毎月（特定日） |
-| absoluteYearly  | 毎年（特定日） |
+| absoluteYearly | 毎年（特定日） |
 | relativeMonthly | 毎月（第n曜日など） |
-| relativeYearly  | 毎年（第n曜日など） |
+| relativeYearly | 毎年（第n曜日など） |
 
 ## 出力
 
@@ -151,7 +151,7 @@ Googleスプレッドシートのカスタムメニューから「Tasksシート
 ## メッセージ一覧
 
 | 種別 | メッセージ内容 | 用途・タイミング |
-| ---- | ------------- | --------------- |
+| ---- | ---- | ---- |
 | 完了 | 認証URLを生成しました。\nセルA6をクリックしてブラウザで開いてください。 | 認証URL生成時（ダイアログ） |
 | 完了 | アクセストークンとリフレッシュトークンを取得しました。 | トークン取得成功時（ダイアログ） |
 | 完了 | タスク登録処理が完了しました！ | 全タスク登録完了時（ダイアログ） |
