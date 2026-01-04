@@ -121,10 +121,12 @@ Microsoft OAuthフローでリダイレクト先としてGoogle Apps ScriptのWe
 Googleスプレッドシートのカスタムメニューから「認証URL生成」を選択すると、次の処理を行います。
 
 1. AuthシートA1セルからMicrosoftアプリのClient IDを取得します。
-2. Microsoft認証エンドポイント、リダイレクトURI、スコープなどのパラメータを組み合わせて認証用URLを生成します。
-3. 生成した認証URLをAuthシートA6セルに出力します。
+2. PKCE用の`code_verifier`と`code_challenge`を生成し、`code_verifier`をAuthシートA8セルに保存します。
+3. Microsoft認証エンドポイント、リダイレクトURI、スコープ、`code_challenge`、`code_challenge_method=S256`などのパラメータを組み合わせて認証用URLを生成します。
+4. 生成した認証URLをAuthシートA6セルに出力します。
 
-A6セルのURLをブラウザで開き、Microsoftアカウントで認可を行い、表示された認可コードをAuthシートA3セルに貼り付けてください。
+A6セルのURLをブラウザで開き、Microsoftアカウントで認可を行ってください。
+表示された認可コードを、AuthシートA3セルに貼り付けてください。
 
 ### トークン取得処理
 
