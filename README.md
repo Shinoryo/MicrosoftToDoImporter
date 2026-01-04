@@ -161,7 +161,7 @@ Googleスプレッドシートのカスタムメニューから「Tasksシート
 | エラー | Tasksシートに'result'列がありません。'result'列を追加してください。 | result列未作成時 |
 | エラー | title/list_name missing | 必須項目未入力時 |
 | エラー | due日付が不正です | 期限日が不正な場合 |
-| エラー | Error: {message} | トークン取得処理中に予期しないエラーが発生した場合（WebアプリのHTML出力） |
+| エラー | Error: {msg} | トークン取得処理中に予期しないエラーが発生した場合（WebアプリのHTML出力） |
 | エラー | Microsoft To Do登録APIエラー: HTTP {code}\n{body} | Microsoft To Do API呼び出し時にHTTPエラーが発生した場合（result列） |
 | エラー | アクセストークンの有効期限が切れています。再度認証を実行してください。 | トークン有効期限切れ時 |
 | エラー | アクセストークン取得に失敗しました: {msg} | アクセストークン取得失敗時 |
