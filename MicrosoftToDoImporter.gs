@@ -332,9 +332,17 @@ function addTasksFromSheet() {
  * @returns {string} code_verifier
  */
 function generateCodeVerifier() {
-    // RFC 7636に従い、43-128文字のランダム文字列を生成
-    const randomBytes = Utilities.getRandomValues(32);
-    return Utilities.base64EncodeWebSafe(randomBytes).replace(/=/g, "");
+    // UUID + 時刻をシードにSHA-256を取り、websafe base64で返す
+    // 生成結果は通常43文字以上になるためPKCEの要件を満たします
+    const seed = Utilities.getUuid() + ":" + Date.now();
+    const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, seed);
+    let verifier = Utilities.base64EncodeWebSafe(digest).replace(/=/g, "");
+    if (verifier.length < 43) {
+        while (verifier.length < 43) verifier += "A";
+    } else if (verifier.length > 128) {
+        verifier = verifier.substring(0, 128);
+    }
+    return verifier;
 }
 
 /**
